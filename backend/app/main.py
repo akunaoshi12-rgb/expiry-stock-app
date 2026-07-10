@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.product_batches import router as product_batches_router
 from app.api.products import router as products_router
 from app.core.config import get_settings
 
@@ -26,6 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(product_batches_router)
 app.include_router(products_router)
 
 

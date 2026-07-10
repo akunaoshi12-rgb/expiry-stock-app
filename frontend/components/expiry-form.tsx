@@ -3,23 +3,26 @@
 import { useEffect, useState } from "react";
 import { ProductSearch } from "@/components/product-search";
 import { Spinner, Toast } from "@/components/state-panels";
+import { createProductBatch } from "@/lib/api";
 import type { Product } from "@/types";
 
 interface FormState {
   selectedProduct: Product | null;
   expiryDate: string;
-  stock: string;
+  quantity: string;
+  receivedDate: string;
   batchNumber: string;
-  location: string;
+  storageLocation: string;
   notes: string;
 }
 
 const initialForm: FormState = {
   selectedProduct: null,
   expiryDate: "",
-  stock: "",
+  quantity: "",
+  receivedDate: "",
   batchNumber: "",
-  location: "",
+  storageLocation: "",
   notes: ""
 };
 
@@ -52,21 +55,29 @@ export function ExpiryForm() {
       return "Tanggal expired wajib diisi.";
     }
 
-    if (form.stock.trim() === "") {
-      return "Sisa stok wajib diisi.";
+    if (form.quantity.trim() === "") {
+      return "Jumlah stok wajib diisi.";
     }
 
-    const stockNumber = Number(form.stock);
+    const quantityNumber = Number(form.quantity);
 
-    if (!Number.isInteger(stockNumber) || stockNumber < 0) {
-      return "Sisa stok harus bilangan bulat dan tidak boleh kurang dari 0.";
+    if (!Number.isInteger(quantityNumber) || quantityNumber <= 0) {
+      return "Jumlah stok harus bilangan bulat lebih dari 0.";
+    }
+
+    if (form.receivedDate && form.expiryDate < form.receivedDate) {
+      return "Tanggal expired tidak boleh sebelum tanggal diterima.";
     }
 
     return "";
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
+
     const validationError = validateForm();
 
     if (validationError) {
@@ -74,23 +85,54 @@ export function ExpiryForm() {
       return;
     }
 
+    const selectedProduct = form.selectedProduct;
+    if (!selectedProduct) {
+      setError("Pilih produk dari daftar hasil pencarian.");
+      return;
+    }
+
     setIsSubmitting(true);
-    window.setTimeout(() => {
-      setIsSubmitting(false);
-      setToast("Data expired berhasil disimpan.");
+    try {
+      await createProductBatch({
+        product_id: selectedProduct.id,
+        batch_number: form.batchNumber.trim() || null,
+        quantity: Number(form.quantity),
+        received_date: form.receivedDate || null,
+        expiry_date: form.expiryDate,
+        storage_location: form.storageLocation.trim() || null,
+        notes: form.notes.trim() || null
+      });
+      setToast("Batch berhasil ditambahkan.");
       setForm(initialForm);
-    }, 700);
+    } catch {
+      setError("Batch belum dapat disimpan. Coba lagi.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <>
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         <ProductSearch
           selectedProduct={form.selectedProduct}
           onSelect={(product) => updateField("selectedProduct", product)}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="received-date">
+              Tanggal diterima
+            </label>
+            <input
+              id="received-date"
+              className="field mt-2"
+              type="date"
+              value={form.receivedDate}
+              onChange={(event) => updateField("receivedDate", event.target.value)}
+            />
+          </div>
+
           <div>
             <label className="label" htmlFor="expiry-date">
               Tanggal expired
@@ -106,18 +148,18 @@ export function ExpiryForm() {
           </div>
 
           <div>
-            <label className="label" htmlFor="stock">
-              Sisa stok
+            <label className="label" htmlFor="quantity">
+              Jumlah stok
             </label>
             <input
-              id="stock"
+              id="quantity"
               className="field mt-2"
-              min="0"
+              min="1"
               inputMode="numeric"
               type="number"
-              value={form.stock}
-              onChange={(event) => updateField("stock", event.target.value)}
-              placeholder="0"
+              value={form.quantity}
+              onChange={(event) => updateField("quantity", event.target.value)}
+              placeholder="12"
               required
             />
           </div>
@@ -140,14 +182,14 @@ export function ExpiryForm() {
             </div>
 
             <div>
-              <label className="label" htmlFor="location">
-                Lokasi
+              <label className="label" htmlFor="storage-location">
+                Lokasi penyimpanan
               </label>
               <select
-                id="location"
+                id="storage-location"
                 className="field mt-2"
-                value={form.location}
-                onChange={(event) => updateField("location", event.target.value)}
+                value={form.storageLocation}
+                onChange={(event) => updateField("storageLocation", event.target.value)}
               >
                 <option value="">Pilih lokasi</option>
                 <option value="Rak depan">Rak depan</option>
@@ -179,7 +221,7 @@ export function ExpiryForm() {
         ) : null}
 
         <button className="btn-primary w-full sm:w-auto" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? <Spinner label="Menyimpan" /> : "Simpan data expired"}
+          {isSubmitting ? <Spinner label="Menyimpan" /> : "Simpan batch expired"}
         </button>
       </form>
 

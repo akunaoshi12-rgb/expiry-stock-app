@@ -1,4 +1,13 @@
-import type { ApiErrorResponse, DashboardSummary, DashboardSummaryResponse, Product, ProductSearchResponse } from "@/types";
+import type {
+  ApiErrorResponse,
+  DashboardSummary,
+  DashboardSummaryResponse,
+  Product,
+  ProductBatch,
+  ProductBatchCreateRequest,
+  ProductBatchCreateResponse,
+  ProductSearchResponse
+} from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
@@ -61,4 +70,28 @@ export async function searchProducts(query: string, signal?: AbortSignal): Promi
   }
 
   return payload.data ?? [];
+}
+
+export async function createProductBatch(request: ProductBatchCreateRequest): Promise<ProductBatch> {
+  let response: Response;
+
+  try {
+    response = await fetch(getApiUrl("/api/product-batches"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(request)
+    });
+  } catch {
+    throw new Error("Batch belum dapat disimpan. Periksa koneksi lalu coba lagi.");
+  }
+
+  const payload = (await response.json()) as ProductBatchCreateResponse | ApiErrorResponse;
+
+  if (!response.ok || payload.error || !payload.data) {
+    throw new Error("Batch belum dapat disimpan. Coba lagi.");
+  }
+
+  return payload.data;
 }

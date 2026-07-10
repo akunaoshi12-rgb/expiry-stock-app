@@ -88,6 +88,53 @@ Mengambil detail satu produk.
 
 ## 4. Expiry Batches
 
+### MVP saat ini: `POST /api/product-batches`
+
+Request:
+
+```json
+{
+  "product_id": "uuid",
+  "batch_number": "BATCH-001",
+  "quantity": 12,
+  "received_date": "2026-07-11",
+  "expiry_date": "2026-10-31",
+  "storage_location": "Gudang A",
+  "notes": "Rak pendingin"
+}
+```
+
+Validasi:
+
+- `product_id` wajib, format UUID, produk harus ada, dan produk harus aktif.
+- `quantity` wajib integer, minimal 1, maksimal 1.000.000.
+- `expiry_date` wajib.
+- Jika `received_date` diisi, `expiry_date` tidak boleh sebelum `received_date`.
+- String kosong pada `batch_number`, `storage_location`, dan `notes` disimpan sebagai `null`.
+
+Response sukses:
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "product_id": "uuid",
+    "batch_number": "BATCH-001",
+    "quantity": 12,
+    "received_date": "2026-07-11",
+    "expiry_date": "2026-10-31",
+    "storage_location": "Gudang A",
+    "notes": "Rak pendingin",
+    "is_active": true,
+    "created_at": "2026-07-11T08:00:00+00:00",
+    "updated_at": "2026-07-11T08:00:00+00:00"
+  },
+  "error": null
+}
+```
+
+Response error tetap memakai format project dan tidak boleh berisi stack trace, SQL mentah, URL Supabase, atau secret key.
+
 ### `GET /api/expiry-batches`
 
 Query parameters:

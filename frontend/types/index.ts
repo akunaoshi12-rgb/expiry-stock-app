@@ -30,6 +30,35 @@ export interface ProductSearchResponse {
   error: ApiError | null;
 }
 
+export interface ProductBatchCreateRequest {
+  product_id: string;
+  batch_number: string | null;
+  quantity: number;
+  received_date: string | null;
+  expiry_date: string;
+  storage_location: string | null;
+  notes: string | null;
+}
+
+export interface ProductBatch {
+  id: string;
+  product_id: string;
+  batch_number: string | null;
+  quantity: number;
+  received_date: string | null;
+  expiry_date: string;
+  storage_location: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductBatchCreateResponse {
+  data: ProductBatch | null;
+  error: ApiError | null;
+}
+
 export interface ExpiryBatch {
   id: string;
   productId: string;
