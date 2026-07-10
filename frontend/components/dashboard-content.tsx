@@ -164,7 +164,7 @@ export function DashboardContent() {
                 <div>
                   <p className="font-semibold text-text">{batch.product.name}</p>
                   <p className="mt-1 text-sm text-muted">
-                    {batch.product.category} - {formatDate(batch.expiryDate)} - {batch.stock} pcs
+                    {batch.product.category?.name ?? "-"} - {formatDate(batch.expiryDate)} - {batch.stock} pcs
                   </p>
                 </div>
                 <StatusBadge status={batch.status} daysLeft={batch.daysLeft} />

@@ -44,8 +44,8 @@ export function ExpiryForm() {
   }
 
   function validateForm() {
-    if (!form.selectedProduct) {
-      return "Pilih produk dari master data terlebih dahulu.";
+    if (!form.selectedProduct?.id) {
+      return "Pilih produk dari daftar hasil pencarian.";
     }
 
     if (!form.expiryDate) {

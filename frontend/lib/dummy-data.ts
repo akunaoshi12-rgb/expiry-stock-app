@@ -5,58 +5,66 @@ export const products: Product[] = [
   {
     id: "prd-001",
     barcode: "8991234567890",
+    internal_code: null,
     name: "Susu UHT Full Cream 1L",
-    category: "Minuman Susu",
-    active: true
+    category: { id: "cat-Minuman Susu", name: "Minuman Susu" },
+    is_active: true
   },
   {
     id: "prd-002",
     barcode: "8992222333344",
+    internal_code: null,
     name: "Yogurt Strawberry 250ml",
-    category: "Dairy",
-    active: true
+    category: { id: "cat-Dairy", name: "Dairy" },
+    is_active: true
   },
   {
     id: "prd-003",
     barcode: "8995555666677",
+    internal_code: null,
     name: "Roti Gandum Kupas",
-    category: "Roti",
-    active: true
+    category: { id: "cat-Roti", name: "Roti" },
+    is_active: true
   },
   {
     id: "prd-004",
     barcode: "8997777888899",
+    internal_code: null,
     name: "Keju Cheddar Slice",
-    category: "Dairy",
-    active: true
+    category: { id: "cat-Dairy", name: "Dairy" },
+    is_active: true
   },
   {
     id: "prd-005",
     barcode: "8999876500012",
+    internal_code: null,
     name: "Jus Jeruk 1L",
-    category: "Minuman",
-    active: true
+    category: { id: "cat-Minuman", name: "Minuman" },
+    is_active: true
   },
   {
     id: "prd-006",
     barcode: "8991111222233",
+    internal_code: null,
     name: "Sosis Ayam 500g",
-    category: "Frozen Food",
-    active: true
+    category: { id: "cat-Frozen Food", name: "Frozen Food" },
+    is_active: true
   },
   {
     id: "prd-007",
     barcode: "8994444555566",
+    internal_code: null,
     name: "Kopi Susu Botol",
-    category: "Minuman",
-    active: true
+    category: { id: "cat-Minuman", name: "Minuman" },
+    is_active: true
   },
   {
     id: "prd-008",
     barcode: "8990000111122",
+    internal_code: null,
     name: "Mentega Tawar 200g",
-    category: "Dairy",
-    active: true
+    category: { id: "cat-Dairy", name: "Dairy" },
+    is_active: true
   }
 ];
 
@@ -146,4 +154,6 @@ export function getBatchesWithProduct(): ExpiryBatchWithProduct[] {
     .sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
-export const categories = Array.from(new Set(products.map((product) => product.category))).sort();
+export const categories = Array.from(
+  new Set(products.map((product) => product.category?.name).filter((category): category is string => Boolean(category)))
+).sort();

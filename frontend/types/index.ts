@@ -1,11 +1,33 @@
 export type ExpiryStatus = "expired" | "critical" | "urgent" | "warning" | "safe";
 
+export interface ApiError {
+  code: string;
+  message: string;
+  details: Record<string, unknown>;
+}
+
+export interface ApiErrorResponse {
+  data: null;
+  error: ApiError;
+}
+
+export interface ProductCategory {
+  id: string;
+  name: string;
+}
+
 export interface Product {
   id: string;
-  barcode: string;
+  barcode: string | null;
+  internal_code: string | null;
   name: string;
-  category: string;
-  active: boolean;
+  category: ProductCategory | null;
+  is_active: boolean;
+}
+
+export interface ProductSearchResponse {
+  data: Product[] | null;
+  error: ApiError | null;
 }
 
 export interface ExpiryBatch {

@@ -34,10 +34,11 @@ export function ExpiryList() {
         const matchesQuery =
           normalizedQuery.length === 0 ||
           batch.product.name.toLowerCase().includes(normalizedQuery) ||
-          batch.product.barcode.includes(normalizedQuery) ||
+          (batch.product.barcode?.includes(normalizedQuery) ?? false) ||
           batch.batchNumber?.toLowerCase().includes(normalizedQuery);
         const matchesStatus = status === "all" || batch.status === status;
-        const matchesCategory = category === "all" || batch.product.category === category;
+        const productCategory = batch.product.category?.name ?? "-";
+        const matchesCategory = category === "all" || productCategory === category;
 
         return matchesQuery && matchesStatus && matchesCategory;
       })
@@ -169,7 +170,7 @@ export function ExpiryList() {
                       <p className="font-semibold text-text">{batch.product.name}</p>
                       <p className="text-xs text-muted">{batch.product.barcode}</p>
                     </td>
-                    <td className="px-4 py-4 text-muted">{batch.product.category}</td>
+                    <td className="px-4 py-4 text-muted">{batch.product.category?.name ?? "-"}</td>
                     <td className="px-4 py-4 font-semibold text-text">{formatDate(batch.expiryDate)}</td>
                     <td className="px-4 py-4 text-muted">{batch.stock} pcs</td>
                     <td className="px-4 py-4">
@@ -204,7 +205,7 @@ export function ExpiryList() {
                   </div>
                   <div>
                     <dt className="text-muted">Kategori</dt>
-                    <dd className="font-semibold text-text">{batch.product.category}</dd>
+                    <dd className="font-semibold text-text">{batch.product.category?.name ?? "-"}</dd>
                   </div>
                   <div>
                     <dt className="text-muted">Batch</dt>
