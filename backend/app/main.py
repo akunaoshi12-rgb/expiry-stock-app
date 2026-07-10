@@ -1,21 +1,32 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.products import router as products_router
+from app.core.config import get_settings
+
+settings = get_settings()
+
 app = FastAPI(
     title="Expiry Stock API",
     version="0.1.0",
 )
 
+allowed_origins = [
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+]
+if settings.frontend_url not in allowed_origins:
+    allowed_origins.append(settings.frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:3000",
-        "http://localhost:3000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(products_router)
 
 
 @app.get("/health")
