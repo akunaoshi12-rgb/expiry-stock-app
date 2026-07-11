@@ -31,6 +31,18 @@ app.include_router(product_batches_router)
 app.include_router(products_router)
 
 
+@app.get("/")
+def root() -> dict[str, object]:
+    return {
+        "data": {
+            "name": "Expiry Stock API",
+            "status": "ok",
+            "documentation": "/docs",
+        },
+        "error": None,
+    }
+
+
 @app.get("/health")
 def health_check() -> dict[str, object]:
     return {
