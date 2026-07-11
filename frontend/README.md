@@ -21,6 +21,6 @@ npm run build
 
 ## Catatan
 
-- Data masih dummy lokal.
+- Data produk dan batch diambil dari FastAPI.
 - Login masih simulasi.
-- Belum ada FastAPI, Supabase, atau authentication nyata.
+- Authentication nyata belum tersedia.

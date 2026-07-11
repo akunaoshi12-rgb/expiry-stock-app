@@ -54,8 +54,17 @@ export interface ProductBatch {
   updated_at: string;
 }
 
+export interface ProductBatchWithProduct extends ProductBatch {
+  product: Product | null;
+}
+
 export interface ProductBatchCreateResponse {
   data: ProductBatch | null;
+  error: ApiError | null;
+}
+
+export interface ProductBatchListResponse {
+  data: ProductBatchWithProduct[] | null;
   error: ApiError | null;
 }
 

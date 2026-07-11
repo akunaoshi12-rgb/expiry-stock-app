@@ -43,6 +43,29 @@ class ProductBatchItem(BaseModel):
     updated_at: datetime
 
 
+class ProductBatchCategory(BaseModel):
+    id: str
+    name: str
+
+
+class ProductBatchProduct(BaseModel):
+    id: str
+    barcode: str | None
+    internal_code: str | None
+    name: str
+    category: ProductBatchCategory | None
+    is_active: bool
+
+
+class ProductBatchListItem(ProductBatchItem):
+    product: ProductBatchProduct | None
+
+
 class ProductBatchCreateResponse(BaseModel):
     data: ProductBatchItem
+    error: None = None
+
+
+class ProductBatchListResponse(BaseModel):
+    data: list[ProductBatchListItem]
     error: None = None

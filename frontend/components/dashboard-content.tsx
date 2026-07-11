@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getDashboardSummary } from "@/lib/api";
-import { getBatchesWithProduct } from "@/lib/dummy-data";
-import { formatDate } from "@/lib/status";
-import type { DashboardSummary } from "@/types";
+import { getDashboardSummary, getProductBatches } from "@/lib/api";
+import { formatDate, getDaysLeft, getExpiryStatus } from "@/lib/status";
+import type { DashboardSummary, ProductBatchWithProduct } from "@/types";
 import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/state-panels";
 import { StatusBadge } from "@/components/status-badge";
 
@@ -13,14 +12,16 @@ export function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
-  const batches = useMemo(() => getBatchesWithProduct(), []);
+  const [batches, setBatches] = useState<ProductBatchWithProduct[]>([]);
 
   const applyDashboardRequest = useCallback(async () => {
     try {
-      const data = await getDashboardSummary();
-      setDashboardSummary(data);
+      const [summaryData, batchData] = await Promise.all([getDashboardSummary(), getProductBatches()]);
+      setDashboardSummary(summaryData);
+      setBatches(batchData);
     } catch (error) {
       setDashboardSummary(null);
+      setBatches([]);
       setErrorMessage(error instanceof Error ? error.message : "Ringkasan dashboard belum dapat ditampilkan.");
     } finally {
       setIsLoading(false);
@@ -32,13 +33,14 @@ export function DashboardContent() {
 
     async function loadInitialDashboardSummary() {
       try {
-        const data = await getDashboardSummary();
+        const [summaryData, batchData] = await Promise.all([getDashboardSummary(), getProductBatches()]);
 
         if (!isActive) {
           return;
         }
 
-        setDashboardSummary(data);
+        setDashboardSummary(summaryData);
+        setBatches(batchData);
         setErrorMessage("");
       } catch (error) {
         if (!isActive) {
@@ -46,6 +48,7 @@ export function DashboardContent() {
         }
 
         setDashboardSummary(null);
+        setBatches([]);
         setErrorMessage(error instanceof Error ? error.message : "Ringkasan dashboard belum dapat ditampilkan.");
       } finally {
         if (isActive) {
@@ -89,6 +92,11 @@ export function DashboardContent() {
       }
     ];
   }, [dashboardSummary]);
+
+  const nearestBatches = useMemo(
+    () => [...batches].sort((a, b) => getDaysLeft(a.expiry_date) - getDaysLeft(b.expiry_date)).slice(0, 5),
+    [batches]
+  );
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -145,7 +153,7 @@ export function DashboardContent() {
           </Link>
         </div>
 
-        {batches.length === 0 ? (
+        {nearestBatches.length === 0 ? (
           <div className="p-5">
             <EmptyState
               title="Belum ada data expired."
@@ -159,15 +167,15 @@ export function DashboardContent() {
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {batches.slice(0, 5).map((batch) => (
+            {nearestBatches.map((batch) => (
               <div key={batch.id} className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="font-semibold text-text">{batch.product.name}</p>
+                  <p className="font-semibold text-text">{batch.product?.name ?? "Produk tidak ditemukan"}</p>
                   <p className="mt-1 text-sm text-muted">
-                    {batch.product.category?.name ?? "-"} - {formatDate(batch.expiryDate)} - {batch.stock} pcs
+                    {batch.product?.category?.name ?? "-"} - {formatDate(batch.expiry_date)} - {batch.quantity} pcs
                   </p>
                 </div>
-                <StatusBadge status={batch.status} daysLeft={batch.daysLeft} />
+                <StatusBadge status={getExpiryStatus(batch.expiry_date)} daysLeft={getDaysLeft(batch.expiry_date)} />
               </div>
             ))}
           </div>

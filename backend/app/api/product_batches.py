@@ -8,6 +8,7 @@ from app.schemas.common import ErrorResponse
 from app.schemas.product_batches import (
     ProductBatchCreateRequest,
     ProductBatchCreateResponse,
+    ProductBatchListResponse,
 )
 from app.services.product_batches import (
     ProductBatchDatabaseError,
@@ -17,6 +18,25 @@ from app.services.product_batches import (
 )
 
 router = APIRouter(prefix="/api/product-batches", tags=["product-batches"])
+
+
+@router.get(
+    "",
+    response_model=ProductBatchListResponse,
+    responses={500: {"model": ErrorResponse}},
+)
+def list_product_batches() -> ProductBatchListResponse:
+    service = ProductBatchService()
+    try:
+        batches = service.list_batches()
+    except ProductBatchDatabaseError:
+        return error_response(
+            code="DATABASE_ERROR",
+            message="Daftar batch belum dapat dimuat. Coba lagi nanti.",
+            status_code=500,
+        )
+
+    return ProductBatchListResponse(data=batches)
 
 
 @router.post(

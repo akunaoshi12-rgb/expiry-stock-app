@@ -5,6 +5,14 @@ import { ExpiryForm } from "@/components/expiry-form";
 import { createProductBatch, searchProducts } from "@/lib/api";
 import type { ProductBatch } from "@/types";
 
+const pushMock = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: pushMock
+  })
+}));
+
 vi.mock("@/components/product-search", () => ({
   ProductSearch: ({
     selectedProduct,
@@ -85,6 +93,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  pushMock.mockReset();
 });
 
 describe("ExpiryForm", () => {
@@ -188,6 +197,7 @@ describe("ExpiryForm", () => {
     });
     expect(await screen.findByText("Batch berhasil ditambahkan.")).toBeInTheDocument();
     expect(screen.getByLabelText(/jumlah stok/i)).toHaveValue(null);
+    expect(pushMock).toHaveBeenCalledWith("/expiry");
   });
 
   it("error tidak mereset form dan menampilkan pesan dari API", async () => {

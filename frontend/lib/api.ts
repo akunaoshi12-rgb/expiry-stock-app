@@ -6,6 +6,8 @@ import type {
   ProductBatch,
   ProductBatchCreateRequest,
   ProductBatchCreateResponse,
+  ProductBatchListResponse,
+  ProductBatchWithProduct,
   ProductSearchResponse
 } from "@/types";
 
@@ -108,4 +110,22 @@ export async function createProductBatch(request: ProductBatchCreateRequest): Pr
   }
 
   return payload.data;
+}
+
+export async function getProductBatches(): Promise<ProductBatchWithProduct[]> {
+  let response: Response;
+
+  try {
+    response = await fetch(getApiUrl("/api/product-batches"));
+  } catch {
+    throw new Error("Daftar batch belum dapat dimuat. Periksa koneksi lalu coba lagi.");
+  }
+
+  const payload = (await response.json()) as ProductBatchListResponse | ApiErrorResponse;
+
+  if (!response.ok || payload.error) {
+    throw new Error(readApiError(payload, "Daftar batch belum dapat dimuat. Coba lagi."));
+  }
+
+  return payload.data ?? [];
 }

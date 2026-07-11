@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ProductSearch } from "@/components/product-search";
 import { Spinner, Toast } from "@/components/state-panels";
@@ -27,6 +28,7 @@ const initialForm: FormState = {
 };
 
 export function ExpiryForm() {
+  const router = useRouter();
   const [form, setForm] = useState<FormState>(initialForm);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
@@ -108,6 +110,7 @@ export function ExpiryForm() {
       });
       setToast("Batch berhasil ditambahkan.");
       setForm(initialForm);
+      router.push("/expiry");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Batch belum dapat disimpan. Coba lagi.");
     } finally {

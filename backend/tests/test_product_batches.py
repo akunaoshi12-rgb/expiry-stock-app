@@ -2,9 +2,7 @@ from datetime import date
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
 
-from app.main import app
 from app.repositories.product_batches import ProductBatchRepositoryError
 from app.schemas.product_batches import ProductBatchCreateRequest
 from app.services.product_batches import (
@@ -13,9 +11,10 @@ from app.services.product_batches import (
     ProductInactiveError,
     ProductNotFoundError,
 )
+from tests.direct_client import DirectClient
 
 
-client = TestClient(app)
+client = DirectClient()
 
 
 def valid_payload(product_id: str | None = None) -> dict[str, object]:
@@ -52,10 +51,14 @@ class FakeProductBatchRepository:
         product: dict[str, object] | None = None,
         created: dict[str, object] | None = None,
         fail_create: bool = False,
+        rows: list[dict[str, object]] | None = None,
+        fail_list: bool = False,
     ) -> None:
         self.product = product
         self.created = created
         self.fail_create = fail_create
+        self.rows = rows or []
+        self.fail_list = fail_list
         self.created_payload: ProductBatchCreateRequest | None = None
 
     def get_product_status(self, product_id: str) -> dict[str, object] | None:
@@ -67,6 +70,29 @@ class FakeProductBatchRepository:
 
         self.created_payload = payload
         return self.created or created_row(str(payload.product_id))
+
+    def list_active(self) -> list[dict[str, object]]:
+        if self.fail_list:
+            raise ProductBatchRepositoryError("database internal detail")
+
+        return self.rows
+
+
+def batch_row_with_product(product_id: str) -> dict[str, object]:
+    return {
+        **created_row(product_id),
+        "product": {
+            "id": product_id,
+            "barcode": "1005623",
+            "internal_code": None,
+            "name": "ALMOND MILK WITH QURMA CHOCO",
+            "category": {
+                "id": "cat-1",
+                "name": "GROWELL BAR",
+            },
+            "is_active": True,
+        },
+    }
 
 
 def test_create_batch_success() -> None:
@@ -96,6 +122,28 @@ def test_product_inactive() -> None:
 
     with pytest.raises(ProductInactiveError):
         service.create_batch(ProductBatchCreateRequest.model_validate(valid_payload(product_id)))
+
+
+def test_list_batches_success() -> None:
+    product_id = str(uuid4())
+    repository = FakeProductBatchRepository(rows=[batch_row_with_product(product_id)])
+    service = ProductBatchService(repository=repository)  # type: ignore[arg-type]
+
+    result = service.list_batches()
+
+    assert len(result) == 1
+    assert result[0].product_id == product_id
+    assert result[0].product is not None
+    assert result[0].product.name == "ALMOND MILK WITH QURMA CHOCO"
+    assert result[0].product.category is not None
+    assert result[0].product.category.name == "GROWELL BAR"
+
+
+def test_list_batches_database_error() -> None:
+    service = ProductBatchService(repository=FakeProductBatchRepository(fail_list=True))  # type: ignore[arg-type]
+
+    with pytest.raises(ProductBatchDatabaseError):
+        service.list_batches()
 
 
 def test_uuid_invalid_is_rejected_by_endpoint() -> None:
@@ -171,6 +219,21 @@ def test_database_error_is_sanitized_by_endpoint(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr("app.api.product_batches.ProductBatchService", BrokenService)
 
     response = client.post("/api/product-batches", json=valid_payload())
+
+    assert response.status_code == 500
+    body = response.json()
+    assert body["error"]["code"] == "DATABASE_ERROR"
+    assert "SUPABASE" not in body["error"]["message"]
+
+
+def test_list_database_error_is_sanitized_by_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    class BrokenService:
+        def list_batches(self) -> list[object]:
+            raise ProductBatchDatabaseError("sensitive backend detail")
+
+    monkeypatch.setattr("app.api.product_batches.ProductBatchService", BrokenService)
+
+    response = client.get("/api/product-batches")
 
     assert response.status_code == 500
     body = response.json()

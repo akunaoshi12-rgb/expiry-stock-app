@@ -1,12 +1,11 @@
 import pytest
-from fastapi.testclient import TestClient
 
-from app.main import app
 from app.repositories.products import ProductRepositoryError
 from app.services.product_search import ProductSearchService
+from tests.direct_client import DirectClient
 
 
-client = TestClient(app)
+client = DirectClient()
 
 
 def product(

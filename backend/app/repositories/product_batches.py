@@ -87,3 +87,31 @@ class ProductBatchRepository:
         if not isinstance(first_item, dict):
             raise ProductBatchRepositoryError("Product batch database response was invalid.")
         return first_item
+
+    def list_active(self, limit: int = 100) -> list[dict[str, Any]]:
+        params: dict[str, str | int] = {
+            "select": (
+                "id,product_id,batch_number,quantity,received_date,expiry_date,"
+                "storage_location,notes,is_active,created_at,updated_at,"
+                "product:products(id,barcode,internal_code,name,is_active,category:categories(id,name))"
+            ),
+            "is_active": "eq.true",
+            "order": "expiry_date.asc",
+            "limit": limit,
+        }
+
+        try:
+            with httpx.Client(timeout=self.settings.supabase_timeout_seconds) as client:
+                response = client.get(
+                    self._rest_url("product_batches"),
+                    params=params,
+                    headers=self._base_headers(),
+                )
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise ProductBatchRepositoryError("Product batch list database request failed.") from exc
+
+        data = response.json()
+        if not isinstance(data, list):
+            raise ProductBatchRepositoryError("Product batch list database response was invalid.")
+        return data
