@@ -9,3 +9,4 @@ backend/.pytest_cache/
 
 .env
 *.log
+.vercel
