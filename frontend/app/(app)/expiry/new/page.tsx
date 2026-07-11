@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ExpiryForm } from "@/components/expiry-form";
 
 export default function NewExpiryPage() {
@@ -9,7 +8,7 @@ export default function NewExpiryPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">Tambah data expired</p>
           <h2 className="mt-2 text-2xl font-bold text-text md:text-3xl">Catat batch baru</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            Cari produk dari master data dummy, lalu isi tanggal expired dan sisa stok.
+            Cari produk dari master produk, lalu isi tanggal diterima, tanggal expired, dan sisa stok.
           </p>
         </div>
 
@@ -30,14 +29,11 @@ export default function NewExpiryPage() {
         </div>
 
         <div className="card p-5">
-          <h3 className="font-semibold text-text">Belum menghubungkan backend</h3>
+          <h3 className="font-semibold text-text">Tersimpan ke database</h3>
           <p className="mt-2 text-sm leading-6 text-muted">
-            Pada tahap ini data masih dummy dan belum tersimpan ke database. Integrasi API akan dikerjakan pada tahap
-            berikutnya.
+            Batch yang disimpan dari halaman ini akan dikirim ke API production dan dicatat pada database berdasarkan
+            produk master yang dipilih.
           </p>
-          <Link href="/expiry" className="btn-secondary mt-4">
-            Lihat daftar dummy
-          </Link>
         </div>
       </aside>
     </div>

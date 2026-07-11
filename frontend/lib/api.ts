@@ -9,14 +9,28 @@ import type {
   ProductSearchResponse
 } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 function getApiUrl(path: string): string {
   if (!API_URL) {
-    throw new Error("Konfigurasi API belum tersedia. Periksa NEXT_PUBLIC_API_URL.");
+    throw new Error("Konfigurasi API belum tersedia. Periksa NEXT_PUBLIC_API_BASE_URL.");
   }
 
-  return `${API_URL}${path}`;
+  return `${API_URL.replace(/\/$/, "")}${path}`;
+}
+
+function readApiError(payload: ApiErrorResponse | { error?: unknown }, fallback: string): string {
+  if (
+    payload.error &&
+    typeof payload.error === "object" &&
+    "message" in payload.error &&
+    typeof payload.error.message === "string" &&
+    payload.error.message.trim()
+  ) {
+    return payload.error.message;
+  }
+
+  return fallback;
 }
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
@@ -66,7 +80,7 @@ export async function searchProducts(query: string, signal?: AbortSignal): Promi
   const payload = (await response.json()) as ProductSearchResponse | ApiErrorResponse;
 
   if (!response.ok || payload.error) {
-    throw new Error("Gagal mencari produk. Coba lagi.");
+    throw new Error(readApiError(payload, "Gagal mencari produk. Coba lagi."));
   }
 
   return payload.data ?? [];
@@ -90,7 +104,7 @@ export async function createProductBatch(request: ProductBatchCreateRequest): Pr
   const payload = (await response.json()) as ProductBatchCreateResponse | ApiErrorResponse;
 
   if (!response.ok || payload.error || !payload.data) {
-    throw new Error("Batch belum dapat disimpan. Coba lagi.");
+    throw new Error(readApiError(payload, "Batch belum dapat disimpan. Coba lagi."));
   }
 
   return payload.data;

@@ -72,6 +72,7 @@ function deferred<T>() {
 
 async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: /pilih produk test/i }));
+  await user.type(screen.getByLabelText(/tanggal diterima/i), "2026-07-11");
   await user.type(screen.getByLabelText(/jumlah stok/i), "12");
   await user.type(screen.getByLabelText(/tanggal expired/i), "2026-10-31");
 }
@@ -104,10 +105,23 @@ describe("ExpiryForm", () => {
     render(<ExpiryForm />);
 
     await user.click(screen.getByRole("button", { name: /pilih produk test/i }));
+    await user.type(screen.getByLabelText(/tanggal diterima/i), "2026-07-11");
     await user.type(screen.getByLabelText(/tanggal expired/i), "2026-10-31");
     await user.click(screen.getByRole("button", { name: /simpan batch expired/i }));
 
     expect(screen.getByText("Jumlah stok wajib diisi.")).toBeInTheDocument();
+  });
+
+  it("menolak submit tanpa tanggal diterima", async () => {
+    const user = userEvent.setup();
+    render(<ExpiryForm />);
+
+    await user.click(screen.getByRole("button", { name: /pilih produk test/i }));
+    await user.type(screen.getByLabelText(/jumlah stok/i), "12");
+    await user.type(screen.getByLabelText(/tanggal expired/i), "2026-10-31");
+    await user.click(screen.getByRole("button", { name: /simpan batch expired/i }));
+
+    expect(screen.getByText("Tanggal diterima wajib diisi.")).toBeInTheDocument();
   });
 
   it("menolak submit tanpa expiry date", async () => {
@@ -115,6 +129,7 @@ describe("ExpiryForm", () => {
     render(<ExpiryForm />);
 
     await user.click(screen.getByRole("button", { name: /pilih produk test/i }));
+    await user.type(screen.getByLabelText(/tanggal diterima/i), "2026-07-11");
     await user.type(screen.getByLabelText(/jumlah stok/i), "12");
     await user.click(screen.getByRole("button", { name: /simpan batch expired/i }));
 
@@ -156,7 +171,6 @@ describe("ExpiryForm", () => {
     render(<ExpiryForm />);
 
     await fillRequiredFields(user);
-    await user.type(screen.getByLabelText(/tanggal diterima/i), "2026-07-11");
     await user.type(screen.getByLabelText(/nomor batch/i), "BATCH-001");
     await user.selectOptions(screen.getByLabelText(/lokasi penyimpanan/i), "Gudang belakang");
     await user.type(screen.getByLabelText(/catatan/i), "Rak pendingin");
@@ -176,16 +190,15 @@ describe("ExpiryForm", () => {
     expect(screen.getByLabelText(/jumlah stok/i)).toHaveValue(null);
   });
 
-  it("error tidak mereset form dan pesan tetap aman", async () => {
+  it("error tidak mereset form dan menampilkan pesan dari API", async () => {
     const user = userEvent.setup();
-    createProductBatchMock.mockRejectedValue(new Error("internal database stack"));
+    createProductBatchMock.mockRejectedValue(new Error("Produk tidak aktif."));
     render(<ExpiryForm />);
 
     await fillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: /simpan batch expired/i }));
 
-    expect(await screen.findByText("Batch belum dapat disimpan. Coba lagi.")).toBeInTheDocument();
-    expect(screen.queryByText("internal database stack")).not.toBeInTheDocument();
+    expect(await screen.findByText("Produk tidak aktif.")).toBeInTheDocument();
     expect(screen.getByLabelText(/jumlah stok/i)).toHaveValue(12);
   });
 });

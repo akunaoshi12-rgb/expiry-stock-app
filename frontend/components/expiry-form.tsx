@@ -51,6 +51,10 @@ export function ExpiryForm() {
       return "Pilih produk dari daftar hasil pencarian.";
     }
 
+    if (!form.receivedDate) {
+      return "Tanggal diterima wajib diisi.";
+    }
+
     if (!form.expiryDate) {
       return "Tanggal expired wajib diisi.";
     }
@@ -104,8 +108,8 @@ export function ExpiryForm() {
       });
       setToast("Batch berhasil ditambahkan.");
       setForm(initialForm);
-    } catch {
-      setError("Batch belum dapat disimpan. Coba lagi.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Batch belum dapat disimpan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
