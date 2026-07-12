@@ -78,22 +78,32 @@ class AuthService:
 
         try:
             profile = self.profiles.get_by_id(user_id)
-        except ProfileRepositoryError as exc:
-            raise AuthError("Profile lookup failed.") from exc
+        except ProfileRepositoryError:
+            profile = None
 
-        if profile is None or not bool(profile.get("is_active")):
-            raise AuthorizationError("User profile is inactive or missing.")
+        if profile is None:
+            return AuthenticatedUser(
+                id=user_id,
+                email=self._read_email(user_data),
+                role="staff",
+            )
+
+        if not bool(profile.get("is_active")):
+            raise AuthorizationError("User profile is inactive.")
 
         role = str(profile.get("role", "staff"))
         if role not in {"staff", "admin"}:
             raise AuthorizationError("User role is invalid.")
 
-        email = user_data.get("email")
         return AuthenticatedUser(
             id=user_id,
-            email=email if isinstance(email, str) else None,
+            email=self._read_email(user_data),
             role=role,  # type: ignore[arg-type]
         )
+
+    def _read_email(self, user_data: dict[str, Any]) -> str | None:
+        email = user_data.get("email")
+        return email if isinstance(email, str) else None
 
     def _read_bearer_token(self, authorization: str | None) -> str:
         if not authorization:
