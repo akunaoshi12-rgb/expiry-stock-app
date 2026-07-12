@@ -3,6 +3,7 @@ from typing import Any, Literal
 import httpx
 
 from app.core.config import Settings, get_settings
+from app.core.supabase import supabase_rest_headers
 
 SearchMode = Literal["barcode", "internal_code", "name_prefix", "name_contains"]
 
@@ -37,11 +38,7 @@ class ProductRepository:
         else:
             params["name"] = f"ilike.%{query}%"
 
-        headers = {
-            "apikey": self.settings.supabase_service_role_key,
-            "Authorization": f"Bearer {self.settings.supabase_service_role_key}",
-            "Accept": "application/json",
-        }
+        headers = supabase_rest_headers(self.settings)
 
         try:
             with httpx.Client(timeout=self.settings.supabase_timeout_seconds) as client:
@@ -54,4 +51,3 @@ class ProductRepository:
         if not isinstance(data, list):
             raise ProductRepositoryError("Product search database response was invalid.")
         return data
-

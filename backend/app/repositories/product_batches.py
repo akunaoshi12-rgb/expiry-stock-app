@@ -4,6 +4,7 @@ from typing import Any
 import httpx
 
 from app.core.config import Settings, get_settings
+from app.core.supabase import supabase_rest_headers
 from app.schemas.product_batches import ProductBatchCreateRequest
 from app.schemas.product_batches import ProductBatchUpdateRequest
 
@@ -20,11 +21,7 @@ class ProductBatchRepository:
         if not self.settings.supabase_url or not self.settings.supabase_service_role_key:
             raise ProductBatchRepositoryError("Supabase backend environment is not configured.")
 
-        return {
-            "apikey": self.settings.supabase_service_role_key,
-            "Authorization": f"Bearer {self.settings.supabase_service_role_key}",
-            "Accept": "application/json",
-        }
+        return supabase_rest_headers(self.settings)
 
     def _rest_url(self, table: str) -> str:
         if not self.settings.supabase_url:

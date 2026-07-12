@@ -3,6 +3,7 @@ from typing import Any
 import httpx
 
 from app.core.config import Settings, get_settings
+from app.core.supabase import supabase_rest_headers
 
 
 class ProfileRepositoryError(Exception):
@@ -17,11 +18,7 @@ class ProfileRepository:
         if not self.settings.supabase_url or not self.settings.supabase_service_role_key:
             raise ProfileRepositoryError("Supabase backend environment is not configured.")
 
-        return {
-            "apikey": self.settings.supabase_service_role_key,
-            "Authorization": f"Bearer {self.settings.supabase_service_role_key}",
-            "Accept": "application/json",
-        }
+        return supabase_rest_headers(self.settings)
 
     def get_by_id(self, user_id: str) -> dict[str, Any] | None:
         if not self.settings.supabase_url:
