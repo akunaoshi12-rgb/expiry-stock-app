@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Spinner, Toast } from "@/components/state-panels";
+import { getSupabaseClient } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("staff@example.com");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +22,7 @@ export default function LoginPage() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
 
@@ -30,17 +31,26 @@ export default function LoginPage() {
       return;
     }
 
-    if (email.trim().toLowerCase() === "error@example.com") {
-      setError("Login belum berhasil. Periksa email atau password lalu coba lagi.");
-      return;
-    }
-
     setIsLoading(true);
-    window.setTimeout(() => {
+    try {
+      const { error: loginError } = await getSupabaseClient().auth.signInWithPassword({
+        email: email.trim(),
+        password
+      });
+
+      if (loginError) {
+        setError("Login belum berhasil. Periksa email atau password lalu coba lagi.");
+        return;
+      }
+
       setIsLoading(false);
       setToast("Login berhasil. Membuka dashboard.");
       router.push("/dashboard");
-    }, 700);
+    } catch {
+      setError("Konfigurasi login belum tersedia. Periksa environment Supabase.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -51,7 +61,7 @@ export default function LoginPage() {
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">Expiry Stock App</p>
             <h1 className="mt-4 text-4xl font-bold leading-tight text-text">Pantau stok sebelum terlambat.</h1>
             <p className="mt-4 text-sm leading-6 text-muted">
-              Tampilan ini memakai login simulasi untuk tahap frontend. Belum ada Supabase atau authentication nyata.
+              Masuk dengan akun Supabase yang sudah dibuat untuk aplikasi internal ini.
             </p>
           </div>
           <div className="mt-8 grid gap-3 text-sm text-muted">

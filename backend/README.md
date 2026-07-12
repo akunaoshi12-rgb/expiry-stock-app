@@ -8,11 +8,13 @@ Buat file `.env` lokal di folder `backend/` jika menjalankan backend dari folder
 
 ```env
 SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 FRONTEND_URL=http://127.0.0.1:3000
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` hanya boleh ada di backend server-side. Jangan gunakan prefix `NEXT_PUBLIC_` untuk secret backend.
+`SUPABASE_PUBLISHABLE_KEY` dipakai backend untuk verifikasi token Supabase Auth.
 
 ## Cara Menjalankan
 
@@ -34,9 +36,9 @@ pytest
 
 ```bash
 curl "http://127.0.0.1:8000/health"
-curl "http://127.0.0.1:8000/api/dashboard/summary"
-curl "http://127.0.0.1:8000/api/products/search?q=almond&limit=10"
-curl "http://127.0.0.1:8000/api/products/search?q=089686123456"
+curl -H "Authorization: Bearer ACCESS_TOKEN" "http://127.0.0.1:8000/api/dashboard/summary"
+curl -H "Authorization: Bearer ACCESS_TOKEN" "http://127.0.0.1:8000/api/products/search?q=almond&limit=10"
+curl -H "Authorization: Bearer ACCESS_TOKEN" "http://127.0.0.1:8000/api/products/search?q=089686123456"
 ```
 
 ## Product Search
@@ -74,6 +76,7 @@ Contoh curl:
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/product-batches" \
+  -H "Authorization: Bearer ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "product_id": "UUID_PRODUK_VALID",

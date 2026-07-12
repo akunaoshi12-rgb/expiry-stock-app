@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.dashboard import router as dashboard_router
 from app.api.product_batches import router as product_batches_router
 from app.api.products import router as products_router
 from app.core.config import get_settings
+from app.core.errors import ApiErrorException, api_error_response
 
 settings = get_settings()
 
@@ -29,6 +31,12 @@ app.add_middleware(
 
 app.include_router(product_batches_router)
 app.include_router(products_router)
+app.include_router(dashboard_router)
+
+
+@app.exception_handler(ApiErrorException)
+def handle_api_error(_: object, exc: ApiErrorException) -> object:
+    return api_error_response(exc)
 
 
 @app.get("/")
@@ -52,16 +60,3 @@ def health_check() -> dict[str, object]:
         "error": None,
     }
 
-
-@app.get("/api/dashboard/summary")
-def dashboard_summary() -> dict[str, object]:
-    return {
-        "data": {
-            "expired_batches": 5,
-            "critical_batches": 12,
-            "urgent_batches": 18,
-            "warning_batches": 31,
-            "at_risk_stock": 126,
-        },
-        "error": None,
-    }

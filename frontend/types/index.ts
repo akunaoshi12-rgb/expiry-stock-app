@@ -40,6 +40,15 @@ export interface ProductBatchCreateRequest {
   notes: string | null;
 }
 
+export interface ProductBatchUpdateRequest {
+  batch_number: string | null;
+  quantity: number;
+  received_date: string | null;
+  expiry_date: string;
+  storage_location: string | null;
+  notes: string | null;
+}
+
 export interface ProductBatch {
   id: string;
   product_id: string;
@@ -65,6 +74,21 @@ export interface ProductBatchCreateResponse {
 
 export interface ProductBatchListResponse {
   data: ProductBatchWithProduct[] | null;
+  error: ApiError | null;
+}
+
+export interface ProductBatchDetailResponse {
+  data: ProductBatchWithProduct | null;
+  error: ApiError | null;
+}
+
+export interface ProductBatchUpdateResponse {
+  data: ProductBatchWithProduct | null;
+  error: ApiError | null;
+}
+
+export interface ProductBatchDeleteResponse {
+  data: ProductBatchWithProduct | null;
   error: ApiError | null;
 }
 

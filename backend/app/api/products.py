@@ -1,7 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.core.auth import AuthenticatedUser, get_current_user
 from app.core.errors import error_response
 from app.schemas.common import ErrorResponse
 from app.schemas.products import ProductSearchResponse
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/api/products", tags=["products"])
 def search_products(
     q: Annotated[str, Query()],
     limit: Annotated[int, Query(ge=1, le=10)] = 10,
+    current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> ProductSearchResponse:
     service = ProductSearchService()
     try:

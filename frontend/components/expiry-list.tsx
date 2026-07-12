@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getProductBatches } from "@/lib/api";
+import { deleteProductBatch, getProductBatches } from "@/lib/api";
 import { formatDate, formatUpdatedAt, getDaysLeft, getExpiryStatus, STATUS_OPTIONS } from "@/lib/status";
+import { getSupabaseClient, getUserRole } from "@/lib/supabase";
 import type { ExpiryStatus, ProductBatchWithProduct } from "@/types";
-import { EmptyState, ErrorState, LoadingSkeleton } from "@/components/state-panels";
+import { EmptyState, ErrorState, LoadingSkeleton, Spinner, Toast } from "@/components/state-panels";
 import { StatusBadge } from "@/components/status-badge";
 
 type StatusFilter = ExpiryStatus | "all";
@@ -17,7 +18,10 @@ export function ExpiryList() {
   const [category, setCategory] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("nearest");
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeletingId, setIsDeletingId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [toast, setToast] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [batches, setBatches] = useState<ProductBatchWithProduct[]>([]);
 
   const loadBatches = useCallback(async (showLoading = true) => {
@@ -44,6 +48,51 @@ export function ExpiryList() {
 
     return () => window.clearTimeout(timer);
   }, [loadBatches]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadRole() {
+      const { data } = await getSupabaseClient().auth.getUser();
+      if (isActive) {
+        setIsAdmin(getUserRole(data.user) === "admin");
+      }
+    }
+
+    void loadRole();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!toast) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setToast(""), 2500);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  async function handleDelete(batch: ProductBatchWithProduct) {
+    const confirmed = window.confirm(`Hapus batch ${batch.product?.name ?? batch.id}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeletingId(batch.id);
+    setErrorMessage("");
+    try {
+      await deleteProductBatch(batch.id);
+      setBatches((current) => current.filter((item) => item.id !== batch.id));
+      setToast("Batch berhasil dihapus.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Batch belum dapat dihapus.");
+    } finally {
+      setIsDeletingId("");
+    }
+  }
 
   const categories = useMemo(
     () =>
@@ -196,6 +245,7 @@ export function ExpiryList() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Batch</th>
                   <th className="px-4 py-3">Update</th>
+                  <th className="px-4 py-3">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -213,6 +263,23 @@ export function ExpiryList() {
                     </td>
                     <td className="px-4 py-4 text-muted">{batch.batch_number ?? "-"}</td>
                     <td className="px-4 py-4 text-muted">{formatUpdatedAt(batch.updated_at)}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex gap-2">
+                        <Link href={`/expiry/${batch.id}/edit`} className="btn-secondary min-h-9 px-3 py-1">
+                          Edit
+                        </Link>
+                        {isAdmin ? (
+                          <button
+                            className="btn-secondary min-h-9 px-3 py-1 text-danger"
+                            type="button"
+                            disabled={isDeletingId === batch.id}
+                            onClick={() => void handleDelete(batch)}
+                          >
+                            {isDeletingId === batch.id ? <Spinner label="Hapus" /> : "Hapus"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -247,11 +314,27 @@ export function ExpiryList() {
                     <dd className="font-semibold text-text">{batch.batch_number ?? "-"}</dd>
                   </div>
                 </dl>
+                <div className="mt-4 flex gap-2">
+                  <Link href={`/expiry/${batch.id}/edit`} className="btn-secondary flex-1 justify-center">
+                    Edit
+                  </Link>
+                  {isAdmin ? (
+                    <button
+                      className="btn-secondary flex-1 justify-center text-danger"
+                      type="button"
+                      disabled={isDeletingId === batch.id}
+                      onClick={() => void handleDelete(batch)}
+                    >
+                      {isDeletingId === batch.id ? <Spinner label="Hapus" /> : "Hapus"}
+                    </button>
+                  ) : null}
+                </div>
               </article>
             ))}
           </section>
         </>
       )}
+      {toast ? <Toast message={toast} /> : null}
     </div>
   );
 }

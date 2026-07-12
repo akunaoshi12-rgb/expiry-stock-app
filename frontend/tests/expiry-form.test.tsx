@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ExpiryForm } from "@/components/expiry-form";
-import { createProductBatch, searchProducts } from "@/lib/api";
+import { createProductBatch, searchProducts, updateProductBatch } from "@/lib/api";
 import type { ProductBatch } from "@/types";
 
 const pushMock = vi.fn();
@@ -47,11 +47,13 @@ vi.mock("@/components/product-search", () => ({
 
 vi.mock("@/lib/api", () => ({
   createProductBatch: vi.fn(),
-  searchProducts: vi.fn()
+  searchProducts: vi.fn(),
+  updateProductBatch: vi.fn()
 }));
 
 const createProductBatchMock = vi.mocked(createProductBatch);
 const searchProductsMock = vi.mocked(searchProducts);
+const updateProductBatchMock = vi.mocked(updateProductBatch);
 
 const createdBatch: ProductBatch = {
   id: "22222222-2222-2222-2222-222222222222",
@@ -88,6 +90,7 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
 beforeEach(() => {
   createProductBatchMock.mockResolvedValue(createdBatch);
   searchProductsMock.mockResolvedValue([]);
+  updateProductBatchMock.mockResolvedValue({ ...createdBatch, product: null });
 });
 
 afterEach(() => {

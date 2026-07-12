@@ -88,7 +88,15 @@ Mengambil detail satu produk.
 
 ## 4. Expiry Batches
 
-### MVP saat ini: `POST /api/product-batches`
+### MVP saat ini: `/api/product-batches`
+
+Endpoint:
+
+- `GET /api/product-batches`
+- `GET /api/product-batches/{batch_id}`
+- `POST /api/product-batches`
+- `PATCH /api/product-batches/{batch_id}`
+- `DELETE /api/product-batches/{batch_id}` admin only
 
 Request:
 

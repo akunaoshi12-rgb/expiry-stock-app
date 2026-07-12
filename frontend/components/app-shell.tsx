@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { getSupabaseClient } from "@/lib/supabase";
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: "D" },
@@ -11,6 +12,12 @@ const navigation = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await getSupabaseClient().auth.signOut();
+    router.replace("/login");
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,9 +56,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">Aplikasi internal</p>
               <p className="font-semibold text-text">Expiry Stock App</p>
             </div>
-            <Link href="/expiry/new" className="btn-primary hidden sm:inline-flex">
-              + Tambah data
-            </Link>
+            <div className="hidden items-center gap-3 sm:flex">
+              <Link href="/expiry/new" className="btn-primary">
+                + Tambah data
+              </Link>
+              <button className="btn-secondary" type="button" onClick={() => void handleLogout()}>
+                Logout
+              </button>
+            </div>
           </div>
         </header>
 
@@ -59,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface px-2 py-2 shadow-soft lg:hidden">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {navigation.map((item) => {
             const active = pathname === item.href;
 
@@ -76,6 +88,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <button
+            className="flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold text-muted transition-colors"
+            type="button"
+            onClick={() => void handleLogout()}
+          >
+            <span className="text-base">X</span>
+            Logout
+          </button>
         </div>
       </nav>
     </div>

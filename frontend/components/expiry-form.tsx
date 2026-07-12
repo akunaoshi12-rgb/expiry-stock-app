@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ProductSearch } from "@/components/product-search";
 import { Spinner, Toast } from "@/components/state-panels";
-import { createProductBatch } from "@/lib/api";
-import type { Product } from "@/types";
+import { createProductBatch, updateProductBatch } from "@/lib/api";
+import type { Product, ProductBatchWithProduct } from "@/types";
 
 interface FormState {
   selectedProduct: Product | null;
@@ -27,9 +27,30 @@ const initialForm: FormState = {
   notes: ""
 };
 
-export function ExpiryForm() {
+function buildInitialForm(batch?: ProductBatchWithProduct | null): FormState {
+  if (!batch) {
+    return initialForm;
+  }
+
+  return {
+    selectedProduct: batch.product,
+    expiryDate: batch.expiry_date,
+    quantity: String(batch.quantity),
+    receivedDate: batch.received_date ?? "",
+    batchNumber: batch.batch_number ?? "",
+    storageLocation: batch.storage_location ?? "",
+    notes: batch.notes ?? ""
+  };
+}
+
+interface ExpiryFormProps {
+  mode?: "create" | "edit";
+  batch?: ProductBatchWithProduct | null;
+}
+
+export function ExpiryForm({ mode = "create", batch = null }: ExpiryFormProps) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(initialForm);
+  const [form, setForm] = useState<FormState>(() => buildInitialForm(batch));
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,7 +120,7 @@ export function ExpiryForm() {
 
     setIsSubmitting(true);
     try {
-      await createProductBatch({
+      const payload = {
         product_id: selectedProduct.id,
         batch_number: form.batchNumber.trim() || null,
         quantity: Number(form.quantity),
@@ -107,12 +128,32 @@ export function ExpiryForm() {
         expiry_date: form.expiryDate,
         storage_location: form.storageLocation.trim() || null,
         notes: form.notes.trim() || null
-      });
-      setToast("Batch berhasil ditambahkan.");
-      setForm(initialForm);
+      };
+
+      if (mode === "edit" && batch) {
+        await updateProductBatch(batch.id, {
+          batch_number: payload.batch_number,
+          quantity: payload.quantity,
+          received_date: payload.received_date,
+          expiry_date: payload.expiry_date,
+          storage_location: payload.storage_location,
+          notes: payload.notes
+        });
+      } else {
+        await createProductBatch(payload);
+        setForm(initialForm);
+      }
+
+      setToast(mode === "edit" ? "Batch berhasil diperbarui." : "Batch berhasil ditambahkan.");
       router.push("/expiry");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Batch belum dapat disimpan. Coba lagi.");
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : mode === "edit"
+            ? "Batch belum dapat diperbarui. Coba lagi."
+            : "Batch belum dapat disimpan. Coba lagi."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -228,7 +269,7 @@ export function ExpiryForm() {
         ) : null}
 
         <button className="btn-primary w-full sm:w-auto" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? <Spinner label="Menyimpan" /> : "Simpan batch expired"}
+          {isSubmitting ? <Spinner label="Menyimpan" /> : mode === "edit" ? "Simpan perubahan" : "Simpan batch expired"}
         </button>
       </form>
 

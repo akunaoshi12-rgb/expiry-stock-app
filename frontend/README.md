@@ -11,6 +11,16 @@ npm run dev
 
 Buka `http://localhost:3000`.
 
+## Environment Variable
+
+Buat `.env.local` dari `.env.example`.
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+```
+
 ## Validasi
 
 ```bash
@@ -22,5 +32,5 @@ npm run build
 ## Catatan
 
 - Data produk dan batch diambil dari FastAPI.
-- Login masih simulasi.
-- Authentication nyata belum tersedia.
+- Login memakai Supabase Auth.
+- API request mengirim Supabase access token ke backend.

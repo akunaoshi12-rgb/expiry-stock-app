@@ -1,3 +1,5 @@
+from datetime import date
+
 from app.repositories.product_batches import (
     ProductBatchRepository,
     ProductBatchRepositoryError,
@@ -8,6 +10,7 @@ from app.schemas.product_batches import (
     ProductBatchItem,
     ProductBatchListItem,
     ProductBatchProduct,
+    ProductBatchUpdateRequest,
 )
 
 
@@ -19,6 +22,14 @@ class ProductInactiveError(Exception):
     pass
 
 
+class ProductBatchNotFoundError(Exception):
+    pass
+
+
+class ProductBatchValidationError(Exception):
+    pass
+
+
 class ProductBatchDatabaseError(Exception):
     pass
 
@@ -27,7 +38,7 @@ class ProductBatchService:
     def __init__(self, repository: ProductBatchRepository | None = None) -> None:
         self.repository = repository or ProductBatchRepository()
 
-    def create_batch(self, payload: ProductBatchCreateRequest) -> ProductBatchItem:
+    def create_batch(self, payload: ProductBatchCreateRequest, user_id: str) -> ProductBatchItem:
         try:
             product = self.repository.get_product_status(str(payload.product_id))
         except ProductBatchRepositoryError as exc:
@@ -40,7 +51,7 @@ class ProductBatchService:
             raise ProductInactiveError("Produk tidak aktif.")
 
         try:
-            created = self.repository.create(payload)
+            created = self.repository.create(payload, user_id)
         except ProductBatchRepositoryError as exc:
             raise ProductBatchDatabaseError("Batch produk gagal disimpan.") from exc
 
@@ -65,6 +76,75 @@ class ProductBatchService:
             raise ProductBatchDatabaseError("Daftar batch produk gagal diambil.") from exc
 
         return [self._map_list_item(row) for row in rows]
+
+    def get_batch(self, batch_id: str) -> ProductBatchListItem:
+        try:
+            row = self.repository.get_by_id(batch_id)
+        except ProductBatchRepositoryError as exc:
+            raise ProductBatchDatabaseError("Detail batch produk gagal diambil.") from exc
+
+        if row is None:
+            raise ProductBatchNotFoundError("Batch tidak ditemukan.")
+
+        return self._map_list_item(row)
+
+    def update_batch(
+        self,
+        batch_id: str,
+        payload: ProductBatchUpdateRequest,
+        user_id: str,
+    ) -> ProductBatchListItem:
+        current = self.get_batch(batch_id)
+        received_date = payload.received_date if "received_date" in payload.model_fields_set else current.received_date
+        expiry_date = payload.expiry_date if "expiry_date" in payload.model_fields_set else current.expiry_date
+
+        if expiry_date is None:
+            raise ProductBatchValidationError("Tanggal expired wajib diisi.")
+        if received_date and expiry_date < received_date:
+            raise ProductBatchValidationError("Tanggal expired tidak boleh sebelum tanggal diterima.")
+
+        try:
+            updated = self.repository.update(batch_id, payload, user_id)
+        except ProductBatchRepositoryError as exc:
+            raise ProductBatchDatabaseError("Batch produk gagal diperbarui.") from exc
+
+        return self._map_list_item(updated)
+
+    def delete_batch(self, batch_id: str, user_id: str) -> ProductBatchListItem:
+        try:
+            deleted = self.repository.soft_delete(batch_id, user_id)
+        except ProductBatchRepositoryError as exc:
+            raise ProductBatchDatabaseError("Batch produk gagal dihapus.") from exc
+
+        return self._map_list_item(deleted)
+
+    def dashboard_summary(self, today: date | None = None) -> dict[str, int]:
+        rows = self.list_batches()
+        current_day = today or date.today()
+        summary = {
+            "expired_batches": 0,
+            "critical_batches": 0,
+            "urgent_batches": 0,
+            "warning_batches": 0,
+            "at_risk_stock": 0,
+        }
+
+        for row in rows:
+            days_left = (row.expiry_date - current_day).days
+            if days_left < 0:
+                summary["expired_batches"] += 1
+                summary["at_risk_stock"] += row.quantity
+            elif days_left <= 7:
+                summary["critical_batches"] += 1
+                summary["at_risk_stock"] += row.quantity
+            elif days_left <= 14:
+                summary["urgent_batches"] += 1
+                summary["at_risk_stock"] += row.quantity
+            elif days_left <= 30:
+                summary["warning_batches"] += 1
+                summary["at_risk_stock"] += row.quantity
+
+        return summary
 
     def _map_list_item(self, row: dict[str, object]) -> ProductBatchListItem:
         return ProductBatchListItem(

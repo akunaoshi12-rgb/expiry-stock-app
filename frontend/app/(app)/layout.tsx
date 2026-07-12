@@ -1,3 +1,4 @@
+import { AuthGuard } from "@/components/auth-guard";
 import { AppShell } from "@/components/app-shell";
 
 export default function ProtectedDemoLayout({
@@ -5,5 +6,9 @@ export default function ProtectedDemoLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <AppShell>{children}</AppShell>;
+  return (
+    <AuthGuard>
+      <AppShell>{children}</AppShell>
+    </AuthGuard>
+  );
 }

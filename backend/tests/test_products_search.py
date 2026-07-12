@@ -6,6 +6,7 @@ from tests.direct_client import DirectClient
 
 
 client = DirectClient()
+AUTH_HEADERS = {"Authorization": "Bearer staff-token"}
 
 
 def product(
@@ -51,14 +52,31 @@ def test_health_still_works() -> None:
 
 
 def test_dashboard_summary_still_works() -> None:
-    response = client.get("/api/dashboard/summary")
+    response = client.get("/api/dashboard/summary", headers=AUTH_HEADERS)
 
     assert response.status_code == 200
-    assert response.json()["data"]["expired_batches"] == 5
+    assert response.json()["data"]["expired_batches"] >= 0
+
+
+def test_protected_endpoint_requires_token() -> None:
+    response = client.get("/api/products/search?q=almond")
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "UNAUTHORIZED"
+
+
+def test_inactive_user_is_forbidden() -> None:
+    response = client.get(
+        "/api/products/search?q=almond",
+        headers={"Authorization": "Bearer inactive-token"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "FORBIDDEN"
 
 
 def test_empty_query_is_rejected() -> None:
-    response = client.get("/api/products/search?q=   ")
+    response = client.get("/api/products/search?q=   ", headers=AUTH_HEADERS)
 
     assert response.status_code == 400
     assert response.json() == {
@@ -72,7 +90,7 @@ def test_empty_query_is_rejected() -> None:
 
 
 def test_short_name_query_is_rejected() -> None:
-    response = client.get("/api/products/search?q=a")
+    response = client.get("/api/products/search?q=a", headers=AUTH_HEADERS)
 
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"
@@ -174,7 +192,7 @@ def test_no_results_returns_empty_data(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr("app.api.products.ProductSearchService", EmptyService)
 
-    response = client.get("/api/products/search?q=almond")
+    response = client.get("/api/products/search?q=almond", headers=AUTH_HEADERS)
 
     assert response.status_code == 200
     assert response.json() == {"data": [], "error": None}
@@ -189,7 +207,7 @@ def test_database_error_returns_safe_response(monkeypatch: pytest.MonkeyPatch) -
 
     monkeypatch.setattr("app.api.products.ProductSearchService", BrokenService)
 
-    response = client.get("/api/products/search?q=almond")
+    response = client.get("/api/products/search?q=almond", headers=AUTH_HEADERS)
 
     assert response.status_code == 500
     body = response.json()

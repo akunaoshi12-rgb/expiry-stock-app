@@ -6,12 +6,17 @@ import type {
   ProductBatch,
   ProductBatchCreateRequest,
   ProductBatchCreateResponse,
+  ProductBatchDeleteResponse,
+  ProductBatchDetailResponse,
   ProductBatchListResponse,
+  ProductBatchUpdateRequest,
+  ProductBatchUpdateResponse,
   ProductBatchWithProduct,
   ProductSearchResponse
 } from "@/types";
+import { getAccessToken } from "@/lib/supabase";
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
 function getApiUrl(path: string): string {
   if (!API_URL) {
@@ -19,6 +24,14 @@ function getApiUrl(path: string): string {
   }
 
   return `${API_URL.replace(/\/$/, "")}${path}`;
+}
+
+async function authHeaders(extraHeaders?: HeadersInit): Promise<HeadersInit> {
+  const token = await getAccessToken();
+  return {
+    ...extraHeaders,
+    Authorization: `Bearer ${token}`
+  };
 }
 
 function readApiError(payload: ApiErrorResponse | { error?: unknown }, fallback: string): string {
@@ -35,12 +48,21 @@ function readApiError(payload: ApiErrorResponse | { error?: unknown }, fallback:
   return fallback;
 }
 
+function isSessionError(error: unknown): error is Error {
+  return error instanceof Error && error.message.startsWith("Sesi tidak valid");
+}
+
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   let response: Response;
 
   try {
-    response = await fetch(getApiUrl("/api/dashboard/summary"));
-  } catch {
+    response = await fetch(getApiUrl("/api/dashboard/summary"), {
+      headers: await authHeaders()
+    });
+  } catch (error) {
+    if (isSessionError(error)) {
+      throw error;
+    }
     throw new Error("Dashboard belum dapat dimuat. Pastikan backend FastAPI sedang berjalan.");
   }
 
@@ -70,9 +92,15 @@ export async function searchProducts(query: string, signal?: AbortSignal): Promi
   let response: Response;
 
   try {
-    response = await fetch(getApiUrl(`/api/products/search?${params.toString()}`), { signal });
+    response = await fetch(getApiUrl(`/api/products/search?${params.toString()}`), {
+      headers: await authHeaders(),
+      signal
+    });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
+      throw error;
+    }
+    if (isSessionError(error)) {
       throw error;
     }
 
@@ -94,12 +122,15 @@ export async function createProductBatch(request: ProductBatchCreateRequest): Pr
   try {
     response = await fetch(getApiUrl("/api/product-batches"), {
       method: "POST",
-      headers: {
+      headers: await authHeaders({
         "Content-Type": "application/json"
-      },
+      }),
       body: JSON.stringify(request)
     });
-  } catch {
+  } catch (error) {
+    if (isSessionError(error)) {
+      throw error;
+    }
     throw new Error("Batch belum dapat disimpan. Periksa koneksi lalu coba lagi.");
   }
 
@@ -116,8 +147,13 @@ export async function getProductBatches(): Promise<ProductBatchWithProduct[]> {
   let response: Response;
 
   try {
-    response = await fetch(getApiUrl("/api/product-batches"));
-  } catch {
+    response = await fetch(getApiUrl("/api/product-batches"), {
+      headers: await authHeaders()
+    });
+  } catch (error) {
+    if (isSessionError(error)) {
+      throw error;
+    }
     throw new Error("Daftar batch belum dapat dimuat. Periksa koneksi lalu coba lagi.");
   }
 
@@ -128,4 +164,81 @@ export async function getProductBatches(): Promise<ProductBatchWithProduct[]> {
   }
 
   return payload.data ?? [];
+}
+
+export async function getProductBatch(id: string): Promise<ProductBatchWithProduct> {
+  let response: Response;
+
+  try {
+    response = await fetch(getApiUrl(`/api/product-batches/${id}`), {
+      headers: await authHeaders()
+    });
+  } catch (error) {
+    if (isSessionError(error)) {
+      throw error;
+    }
+    throw new Error("Detail batch belum dapat dimuat. Periksa koneksi lalu coba lagi.");
+  }
+
+  const payload = (await response.json()) as ProductBatchDetailResponse | ApiErrorResponse;
+
+  if (!response.ok || payload.error || !payload.data) {
+    throw new Error(readApiError(payload, "Detail batch belum dapat dimuat. Coba lagi."));
+  }
+
+  return payload.data;
+}
+
+export async function updateProductBatch(
+  id: string,
+  request: ProductBatchUpdateRequest
+): Promise<ProductBatchWithProduct> {
+  let response: Response;
+
+  try {
+    response = await fetch(getApiUrl(`/api/product-batches/${id}`), {
+      method: "PATCH",
+      headers: await authHeaders({
+        "Content-Type": "application/json"
+      }),
+      body: JSON.stringify(request)
+    });
+  } catch (error) {
+    if (isSessionError(error)) {
+      throw error;
+    }
+    throw new Error("Batch belum dapat diperbarui. Periksa koneksi lalu coba lagi.");
+  }
+
+  const payload = (await response.json()) as ProductBatchUpdateResponse | ApiErrorResponse;
+
+  if (!response.ok || payload.error || !payload.data) {
+    throw new Error(readApiError(payload, "Batch belum dapat diperbarui. Coba lagi."));
+  }
+
+  return payload.data;
+}
+
+export async function deleteProductBatch(id: string): Promise<ProductBatchWithProduct> {
+  let response: Response;
+
+  try {
+    response = await fetch(getApiUrl(`/api/product-batches/${id}`), {
+      method: "DELETE",
+      headers: await authHeaders()
+    });
+  } catch (error) {
+    if (isSessionError(error)) {
+      throw error;
+    }
+    throw new Error("Batch belum dapat dihapus. Periksa koneksi lalu coba lagi.");
+  }
+
+  const payload = (await response.json()) as ProductBatchDeleteResponse | ApiErrorResponse;
+
+  if (!response.ok || payload.error || !payload.data) {
+    throw new Error(readApiError(payload, "Batch belum dapat dihapus. Coba lagi."));
+  }
+
+  return payload.data;
 }
