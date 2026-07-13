@@ -106,7 +106,7 @@ describe("LoginPage", () => {
       })
     );
     expect(signOutMock).toHaveBeenCalled();
-    expect(await screen.findByText("Pendaftaran berhasil. Cek email untuk verifikasi, lalu masuk kembali setelah akun terkonfirmasi.")).toBeInTheDocument();
+    expect(await screen.findByText("Jika pendaftaran dapat diproses, cek email untuk verifikasi. Jika email ini sudah punya akun, gunakan tab Masuk atau Lupa password.")).toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
   });
 
@@ -152,7 +152,7 @@ describe("LoginPage", () => {
     expect(signUpMock).not.toHaveBeenCalled();
   });
 
-  it("menampilkan pesan signup saat email sudah terdaftar", async () => {
+  it("menampilkan pesan signup netral saat email sudah terdaftar", async () => {
     signUpMock.mockResolvedValue({
       error: { code: "user_already_exists", message: "User already registered" }
     });
@@ -160,7 +160,9 @@ describe("LoginPage", () => {
 
     await user.click(screen.getByRole("button", { name: /daftar akun/i }));
 
-    expect(await screen.findByText("Email ini sudah terdaftar. Gunakan tab Masuk, atau pakai Lupa password jika kamu tidak ingat passwordnya.")).toBeInTheDocument();
+    expect(await screen.findByText("Jika pendaftaran dapat diproses, cek email untuk verifikasi. Jika email ini sudah punya akun, gunakan tab Masuk atau Lupa password.")).toBeInTheDocument();
+    expect(screen.queryByText(/email ini sudah terdaftar/i)).not.toBeInTheDocument();
+    expect(signOutMock).toHaveBeenCalled();
   });
 
   it("menampilkan pesan signup saat password ditolak Supabase", async () => {

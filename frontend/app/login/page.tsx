@@ -15,6 +15,8 @@ type AuthErrorLike = {
 };
 
 const MIN_PASSWORD_LENGTH = 6;
+const SIGNUP_STATUS_MESSAGE =
+  "Jika pendaftaran dapat diproses, cek email untuk verifikasi. Jika email ini sudah punya akun, gunakan tab Masuk atau Lupa password.";
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -24,18 +26,20 @@ function normalizeAuthError(error: AuthErrorLike) {
   return `${error.code ?? ""} ${error.message ?? ""} ${error.name ?? ""}`.toLowerCase();
 }
 
-function getSignupErrorMessage(error: AuthErrorLike) {
+function isDuplicateSignupError(error: AuthErrorLike) {
   const normalizedError = normalizeAuthError(error);
 
-  if (
+  return (
     normalizedError.includes("already") ||
     normalizedError.includes("registered") ||
     normalizedError.includes("exists") ||
     normalizedError.includes("user_already_exists") ||
     normalizedError.includes("email_exists")
-  ) {
-    return "Email ini sudah terdaftar. Gunakan tab Masuk, atau pakai Lupa password jika kamu tidak ingat passwordnya.";
-  }
+  );
+}
+
+function getSignupErrorMessage(error: AuthErrorLike) {
+  const normalizedError = normalizeAuthError(error);
 
   if (
     normalizedError.includes("weak") ||
@@ -98,6 +102,10 @@ export default function LoginPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isLoading) {
+      return;
+    }
+
     setError("");
     setInfo("");
 
@@ -137,6 +145,14 @@ export default function LoginPage() {
         });
 
         if (signupError) {
+          if (isDuplicateSignupError(signupError)) {
+            await supabase.auth.signOut();
+            setPassword("");
+            setConfirmPassword("");
+            setInfo(SIGNUP_STATUS_MESSAGE);
+            return;
+          }
+
           setError(getSignupErrorMessage(signupError));
           return;
         }
@@ -144,7 +160,7 @@ export default function LoginPage() {
         await supabase.auth.signOut();
         setPassword("");
         setConfirmPassword("");
-        setInfo("Pendaftaran berhasil. Cek email untuk verifikasi, lalu masuk kembali setelah akun terkonfirmasi.");
+        setInfo(SIGNUP_STATUS_MESSAGE);
         return;
       }
 

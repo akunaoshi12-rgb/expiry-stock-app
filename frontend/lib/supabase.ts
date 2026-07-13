@@ -34,6 +34,6 @@ export async function getAccessToken(): Promise<string> {
 }
 
 export function getUserRole(user: User | null): "staff" | "admin" {
-  const metadataRole = user?.app_metadata?.role ?? user?.user_metadata?.role;
+  const metadataRole = user?.app_metadata?.role;
   return metadataRole === "admin" ? "admin" : "staff";
 }
