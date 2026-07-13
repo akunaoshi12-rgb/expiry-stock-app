@@ -101,10 +101,9 @@ Perilaku:
 | Status | Label | Penjelasan |
 |---|---|---|
 | expired | Expired | Tanggal sudah lewat |
-| critical | ≤ 7 hari | Harus segera ditangani |
-| urgent | 8–14 hari | Prioritas tinggi |
-| warning | 15–30 hari | Perlu diperhatikan |
-| safe | Aman | Lebih dari 30 hari |
+| critical | Kritis | 0–2 hari |
+| warning | Waspada | 3–13 hari |
+| safe | Aman | 14 hari atau lebih |
 
 Warna harus mengikuti palette aplikasi, tetapi tetap memiliki kontras yang memadai.
 

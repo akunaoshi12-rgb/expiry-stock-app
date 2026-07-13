@@ -14,7 +14,7 @@ export function LoadingSkeleton() {
   return (
     <div className="space-y-4" aria-label="Data sedang dimuat">
       {[0, 1, 2].map((item) => (
-        <div key={item} className="card p-4">
+        <div key={item} className="panel p-4">
           <div className="h-4 w-2/5 animate-pulse rounded bg-surface-muted" />
           <div className="mt-4 h-3 w-full animate-pulse rounded bg-surface-soft" />
           <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-surface-soft" />
@@ -32,10 +32,8 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
-    <div className="card flex flex-col items-start gap-3 p-6">
-      <div className="rounded-lg bg-surface-soft px-3 py-2 text-sm font-semibold text-primary">
-        Belum ada data
-      </div>
+    <div className="panel flex flex-col items-start gap-3 p-6">
+      <div className="rounded-md border border-border bg-surface-soft px-3 py-2 text-sm font-semibold text-primary">Belum ada data</div>
       <div>
         <h3 className="text-lg font-semibold text-text">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
@@ -57,7 +55,7 @@ export function ErrorState({
   onRetry
 }: ErrorStateProps) {
   return (
-    <div className="card border-danger/30 bg-red-50 p-5 text-danger">
+    <div className="panel border-danger/30 bg-danger-soft p-5 text-danger">
       <h3 className="font-semibold">{title}</h3>
       <p className="mt-1 text-sm leading-6">{description}</p>
       {onRetry ? (
@@ -77,8 +75,8 @@ interface ToastProps {
 export function Toast({ message, type = "success" }: ToastProps) {
   const className =
     type === "success"
-      ? "border-success/30 bg-green-50 text-success"
-      : "border-danger/30 bg-red-50 text-danger";
+      ? "border-success/30 bg-success-soft text-success"
+      : "border-danger/30 bg-danger-soft text-danger";
 
   return (
     <div className={`fixed bottom-24 left-4 right-4 z-50 rounded-lg border p-4 text-sm font-semibold shadow-soft md:left-auto md:right-8 md:w-96 ${className}`}>

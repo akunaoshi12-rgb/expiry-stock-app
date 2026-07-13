@@ -1,4 +1,4 @@
-export type ExpiryStatus = "expired" | "critical" | "urgent" | "warning" | "safe";
+export type ExpiryStatus = "expired" | "critical" | "warning" | "safe";
 
 export interface ApiError {
   code: string;
@@ -111,10 +111,8 @@ export interface ExpiryBatchWithProduct extends ExpiryBatch {
 
 export interface DashboardSummary {
   expired_batches: number;
-  critical_batches: number;
-  urgent_batches: number;
-  warning_batches: number;
-  at_risk_stock: number;
+  within_7_days_batches: number;
+  active_batches: number;
 }
 
 export interface DashboardSummaryResponse {

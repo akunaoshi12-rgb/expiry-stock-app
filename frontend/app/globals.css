@@ -16,9 +16,12 @@ html {
 
 body {
   min-height: 100vh;
-  background: #fff8f5;
-  color: #201a18;
-  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", Arial, sans-serif;
+  background:
+    linear-gradient(180deg, rgba(241, 245, 249, 0.85), rgba(247, 249, 252, 0) 18rem),
+    #f7f9fc;
+  color: #111827;
+  font-family: "Geist", "Plus Jakarta Sans", "Inter", "Segoe UI", Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 button,
@@ -33,7 +36,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(154, 64, 40, 0.35);
+  outline: 3px solid rgba(15, 47, 87, 0.24);
   outline-offset: 2px;
 }
 
@@ -43,18 +46,22 @@ textarea:focus-visible {
   }
 
   .field {
-    @apply min-h-12 w-full rounded-lg border border-border bg-white px-4 text-sm text-text transition-colors placeholder:text-muted/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20;
+    @apply min-h-12 w-full rounded-lg border border-border bg-white px-3.5 text-sm text-text transition-colors placeholder:text-muted/70 hover:border-muted/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15;
   }
 
   .label {
-    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+    @apply text-xs font-semibold uppercase text-muted;
   }
 
   .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-text transition-colors hover:bg-surface-soft disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-text transition-colors hover:bg-surface-soft active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .panel {
+    @apply rounded-lg border border-border bg-white transition-colors;
   }
 }

@@ -123,26 +123,16 @@ class ProductBatchService:
         current_day = today or date.today()
         summary = {
             "expired_batches": 0,
-            "critical_batches": 0,
-            "urgent_batches": 0,
-            "warning_batches": 0,
-            "at_risk_stock": 0,
+            "within_7_days_batches": 0,
+            "active_batches": len(rows),
         }
 
         for row in rows:
             days_left = (row.expiry_date - current_day).days
             if days_left < 0:
                 summary["expired_batches"] += 1
-                summary["at_risk_stock"] += row.quantity
             elif days_left <= 7:
-                summary["critical_batches"] += 1
-                summary["at_risk_stock"] += row.quantity
-            elif days_left <= 14:
-                summary["urgent_batches"] += 1
-                summary["at_risk_stock"] += row.quantity
-            elif days_left <= 30:
-                summary["warning_batches"] += 1
-                summary["at_risk_stock"] += row.quantity
+                summary["within_7_days_batches"] += 1
 
         return summary
 

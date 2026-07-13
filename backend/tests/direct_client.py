@@ -36,10 +36,8 @@ class DirectClient:
                 DashboardSummaryResponse(
                     data=DashboardSummary(
                         expired_batches=0,
-                        critical_batches=0,
-                        urgent_batches=0,
-                        warning_batches=0,
-                        at_risk_stock=0,
+                        within_7_days_batches=0,
+                        active_batches=0,
                     )
                 )
             )

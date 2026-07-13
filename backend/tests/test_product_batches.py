@@ -186,10 +186,8 @@ def test_dashboard_summary_is_computed_from_batches() -> None:
 
     assert summary == {
         "expired_batches": 1,
-        "critical_batches": 1,
-        "urgent_batches": 1,
-        "warning_batches": 1,
-        "at_risk_stock": 17,
+        "within_7_days_batches": 1,
+        "active_batches": 4,
     }
 
 

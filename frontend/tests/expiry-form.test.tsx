@@ -183,6 +183,7 @@ describe("ExpiryForm", () => {
     render(<ExpiryForm />);
 
     await fillRequiredFields(user);
+    await user.click(screen.getByRole("button", { name: /informasi opsional/i }));
     await user.type(screen.getByLabelText(/nomor batch/i), "BATCH-001");
     await user.selectOptions(screen.getByLabelText(/lokasi penyimpanan/i), "Gudang belakang");
     await user.type(screen.getByLabelText(/catatan/i), "Rak pendingin");

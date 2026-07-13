@@ -9,22 +9,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#fff8f5",
+        background: "#f7f9fc",
         surface: "#ffffff",
-        "surface-soft": "#fbf2ed",
-        "surface-muted": "#efe6e2",
-        border: "#dcc0ba",
-        primary: "#9a4028",
-        "primary-hover": "#7e2b16",
-        text: "#201a18",
-        muted: "#66534d",
-        success: "#166534",
-        warning: "#b45309",
-        danger: "#b91c1c",
-        info: "#0f766e"
+        "surface-soft": "#f1f5f9",
+        "surface-muted": "#e2e8f0",
+        border: "#d8e0eb",
+        primary: "#0f2f57",
+        "primary-hover": "#0a2342",
+        text: "#111827",
+        muted: "#607089",
+        success: "#15803d",
+        "success-soft": "#ecfdf3",
+        warning: "#a16207",
+        "warning-soft": "#fffbeb",
+        danger: "#b42318",
+        "danger-soft": "#fff1f0",
+        info: "#0369a1"
       },
       boxShadow: {
-        soft: "0 10px 30px rgba(32, 26, 24, 0.08)"
+        soft: "0 10px 28px rgba(15, 47, 87, 0.07)"
       }
     }
   },

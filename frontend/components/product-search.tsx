@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
 import { useProductSearch } from "@/hooks/use-product-search";
 import type { Product } from "@/types";
 import { Spinner } from "@/components/state-panels";
@@ -92,9 +93,10 @@ export function ProductSearch({ selectedProduct, onSelect }: ProductSearchProps)
         <label className="label" htmlFor={inputId}>
           Cari nama produk, barcode, atau kode internal
         </label>
+        <Search className="pointer-events-none absolute left-3 top-[2.95rem] h-4 w-4 text-muted" aria-hidden="true" />
         <input
           id={inputId}
-          className="field mt-2 pr-12"
+          className="field mt-2 pl-9 pr-12"
           value={query}
           onChange={(event) => {
             const nextQuery = event.target.value;
@@ -141,7 +143,7 @@ export function ProductSearch({ selectedProduct, onSelect }: ProductSearchProps)
                   <button
                     id={`${optionBaseId}-${product.id}`}
                     key={product.id}
-                    className={`w-full rounded-lg px-3 py-3 text-left transition-colors ${
+                    className={`w-full rounded-md px-3 py-3 text-left transition-colors ${
                       index === highlightedIndex ? "bg-surface-soft" : "hover:bg-surface-soft"
                     }`}
                     type="button"
@@ -164,9 +166,9 @@ export function ProductSearch({ selectedProduct, onSelect }: ProductSearchProps)
       </div>
 
       {selectedProduct ? (
-        <div className="card flex items-start justify-between gap-4 p-4">
+        <div className="panel flex items-start justify-between gap-4 p-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Produk terpilih</p>
+            <p className="text-xs font-semibold text-muted">Produk terpilih</p>
             <h3 className="mt-1 font-semibold text-text">{selectedProduct.name}</h3>
             {productMeta(selectedProduct).length > 0 ? (
               <p className="mt-1 text-sm text-muted">{productMeta(selectedProduct).join(" - ")}</p>
@@ -181,6 +183,7 @@ export function ProductSearch({ selectedProduct, onSelect }: ProductSearchProps)
               setOpen(false);
             }}
           >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
             Ganti
           </button>
         </div>

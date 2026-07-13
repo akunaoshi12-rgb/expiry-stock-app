@@ -3,10 +3,8 @@ from pydantic import BaseModel
 
 class DashboardSummary(BaseModel):
     expired_batches: int
-    critical_batches: int
-    urgent_batches: int
-    warning_batches: int
-    at_risk_stock: int
+    within_7_days_batches: int
+    active_batches: int
 
 
 class DashboardSummaryResponse(BaseModel):

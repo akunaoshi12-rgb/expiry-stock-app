@@ -88,10 +88,9 @@ Login
 | Kondisi | Status |
 |---|---|
 | Tanggal telah lewat | Expired |
-| 0–7 hari | Kritis |
-| 8–14 hari | Segera ditangani |
-| 15–30 hari | Perlu diperhatikan |
-| Lebih dari 30 hari | Aman |
+| 0–2 hari | Kritis |
+| 3–13 hari | Waspada |
+| 14 hari atau lebih | Aman |
 
 Batas status harus disimpan sebagai konfigurasi terpusat agar tidak ditulis ulang pada banyak file.
 

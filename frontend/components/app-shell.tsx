@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { LayoutDashboard, ListChecks, LogOut, Plus } from "lucide-react";
 import { getSupabaseClient } from "@/lib/supabase";
 
 const navigation = [
-  { href: "/dashboard", label: "Dashboard", icon: "D" },
-  { href: "/expiry/new", label: "Tambah", icon: "+" },
-  { href: "/expiry", label: "Daftar", icon: "L" }
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/expiry/new", label: "Tambah", icon: Plus },
+  { href: "/expiry", label: "Daftar", icon: ListChecks }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -21,79 +22,69 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-border bg-surface px-5 py-6 lg:block">
-        <Link href="/dashboard" className="block">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Expiry Stock</p>
-          <h1 className="mt-1 text-2xl font-bold text-primary">Monitoring Stok</h1>
-        </Link>
+      <header className="sticky top-0 z-30 border-b border-border bg-white/92 px-4 py-3 backdrop-blur md:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+          <Link href="/dashboard" className="min-w-0">
+            <p className="text-xs font-semibold text-muted">Expiry Stock App</p>
+            <h1 className="truncate text-lg font-semibold text-primary">Monitoring batch expired</h1>
+          </Link>
 
-        <nav className="mt-8 space-y-2">
-          {navigation.map((item) => {
-            const active = pathname === item.href;
+          <nav className="hidden items-center gap-1 rounded-lg border border-border bg-surface-soft p-1 md:flex">
+            {navigation.map((item) => {
+              const active = pathname === item.href;
+              const Icon = item.icon;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition-colors ${
-                  active ? "bg-surface-soft text-primary" : "text-muted hover:bg-surface-soft hover:text-text"
-                }`}
-              >
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-xs shadow-sm">
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold transition-colors ${
+                    active ? "bg-white text-primary shadow-sm" : "text-muted hover:text-text"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-border bg-background/90 px-4 py-3 backdrop-blur md:px-8">
-          <div className="mx-auto flex max-w-6xl items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Aplikasi internal</p>
-              <p className="font-semibold text-text">Expiry Stock App</p>
-            </div>
-            <div className="hidden items-center gap-3 sm:flex">
-              <Link href="/expiry/new" className="btn-primary">
-                + Tambah data
-              </Link>
-              <button className="btn-secondary" type="button" onClick={() => void handleLogout()}>
-                Logout
-              </button>
-            </div>
+          <div className="hidden items-center sm:flex">
+            <button className="btn-secondary min-h-10 px-3" type="button" onClick={() => void handleLogout()}>
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              Keluar
+            </button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 md:px-8 md:pt-8">{children}</main>
-      </div>
+      <main className="mx-auto max-w-6xl px-4 pb-32 pt-5 md:px-8 md:pb-12 md:pt-8">{children}</main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface px-2 py-2 shadow-soft lg:hidden">
-        <div className="grid grid-cols-4 gap-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-soft backdrop-blur md:hidden">
+        <div className="grid grid-cols-4 gap-1">
           {navigation.map((item) => {
             const active = pathname === item.href;
+            const Icon = item.icon;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold transition-colors ${
-                  active ? "bg-surface-soft text-primary" : "text-muted"
+                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-xs font-semibold transition-colors ${
+                  active ? "bg-surface-soft text-primary" : "text-muted hover:text-text"
                 }`}
               >
-                <span className="text-base">{item.icon}</span>
+                <Icon className="h-4 w-4" aria-hidden="true" />
                 {item.label}
               </Link>
             );
           })}
           <button
-            className="flex min-h-14 flex-col items-center justify-center rounded-lg text-xs font-semibold text-muted transition-colors"
+            className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg text-xs font-semibold text-muted transition-colors hover:text-text"
             type="button"
             onClick={() => void handleLogout()}
           >
-            <span className="text-base">X</span>
+            <LogOut className="h-4 w-4" aria-hidden="true" />
             Logout
           </button>
         </div>

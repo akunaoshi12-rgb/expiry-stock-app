@@ -135,10 +135,9 @@ Status dihitung dari `expiry_date`:
 
 ```text
 expiry_date < today          → expired
-0 sampai 7 hari              → critical
-8 sampai 14 hari             → urgent
-15 sampai 30 hari            → warning
-lebih dari 30 hari           → safe
+0 sampai 2 hari              → critical
+3 sampai 13 hari             → warning
+14 hari atau lebih           → safe
 ```
 
 Perhitungan dilakukan di backend agar hasil konsisten.

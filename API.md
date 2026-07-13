@@ -175,7 +175,7 @@ Response item:
   "batch_number": "BATCH-0726",
   "location": "Rak pendingin",
   "notes": null,
-  "status": "urgent",
+  "status": "warning",
   "days_remaining": 10,
   "created_at": "2026-07-10T10:00:00Z",
   "updated_at": "2026-07-10T10:00:00Z"
@@ -255,10 +255,8 @@ Response:
 {
   "data": {
     "expired_batches": 5,
-    "critical_batches": 12,
-    "urgent_batches": 18,
-    "warning_batches": 31,
-    "at_risk_stock": 126
+    "within_7_days_batches": 12,
+    "active_batches": 54
   },
   "error": null
 }

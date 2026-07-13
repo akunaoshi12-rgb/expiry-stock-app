@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { deleteProductBatch, getProductBatches } from "@/lib/api";
-import { formatDate, formatUpdatedAt, getDaysLeft, getExpiryStatus, STATUS_OPTIONS } from "@/lib/status";
+import { formatDate, formatUpdatedAt, getDaysLeft, getExpiryStatus, STATUS_ACCENT_CLASS, STATUS_OPTIONS } from "@/lib/status";
 import { getSupabaseClient, getUserRole } from "@/lib/supabase";
 import type { ExpiryStatus, ProductBatchWithProduct } from "@/types";
 import { EmptyState, ErrorState, LoadingSkeleton, Spinner, Toast } from "@/components/state-panels";
@@ -11,18 +12,32 @@ import { StatusBadge } from "@/components/status-badge";
 
 type StatusFilter = ExpiryStatus | "all";
 type SortMode = "nearest" | "stock-high";
+const statusValues: StatusFilter[] = ["all", "expired", "critical", "warning", "safe"];
+
+function readStatusParam(value: string | null): StatusFilter {
+  return statusValues.includes(value as StatusFilter) ? (value as StatusFilter) : "all";
+}
 
 export function ExpiryList() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [category, setCategory] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("nearest");
+  const [expandedBatchId, setExpandedBatchId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [toast, setToast] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [batches, setBatches] = useState<ProductBatchWithProduct[]>([]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setStatus(readStatusParam(new URLSearchParams(window.location.search).get("status")));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const loadBatches = useCallback(async (showLoading = true) => {
     if (showLoading) {
@@ -142,33 +157,37 @@ export function ExpiryList() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-primary">Daftar expired</p>
-          <h2 className="mt-2 text-2xl font-bold text-text md:text-3xl">Batch produk</h2>
+          <p className="text-sm font-semibold text-primary">Daftar expired</p>
+          <h2 className="mt-1 text-2xl font-semibold text-text md:text-3xl">Audit batch stok</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            Gunakan pencarian, filter status, dan kategori untuk menentukan prioritas pengecekan.
+            Cek batch paling dekat expired, stok tersisa, dan riwayat update dalam satu tampilan.
           </p>
         </div>
         <Link href="/expiry/new" className="btn-primary">
-          + Tambah data
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Tambah data
         </Link>
       </section>
 
-      <section className="card p-4">
+      <section className="panel p-4">
         <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <label className="label" htmlFor="batch-search">
-              Search
+              Cari
             </label>
-            <input
-              id="batch-search"
-              className="field mt-2"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cari produk, barcode, atau batch"
-            />
+            <div className="relative mt-2">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+              <input
+                id="batch-search"
+                className="field pl-9"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Produk, barcode, atau batch"
+              />
+            </div>
           </div>
           <div>
             <label className="label" htmlFor="status-filter">
@@ -234,38 +253,39 @@ export function ExpiryList() {
         />
       ) : (
         <>
-          <section className="hidden overflow-hidden rounded-lg border border-border bg-white md:block">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead className="bg-surface-soft text-xs uppercase tracking-wide text-muted">
+          <section className="panel hidden overflow-hidden md:block">
+            <table className="w-full border-separate border-spacing-y-1 p-2 text-left text-sm">
+              <thead className="text-xs font-semibold text-muted">
                 <tr>
-                  <th className="px-4 py-3">Produk</th>
-                  <th className="px-4 py-3">Kategori</th>
-                  <th className="px-4 py-3">Expired</th>
-                  <th className="px-4 py-3">Stok</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Batch</th>
-                  <th className="px-4 py-3">Update</th>
-                  <th className="px-4 py-3">Aksi</th>
+                  <th className="px-3 py-2">Produk</th>
+                  <th className="px-3 py-2">Kategori</th>
+                  <th className="px-3 py-2">Expired</th>
+                  <th className="px-3 py-2">Stok</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Batch</th>
+                  <th className="px-3 py-2">Update</th>
+                  <th className="px-3 py-2">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {filteredBatches.map((batch) => (
-                  <tr key={batch.id} className="transition-colors hover:bg-surface-soft">
-                    <td className="px-4 py-4">
+                  <tr key={batch.id} className="rounded-lg transition-colors odd:bg-surface-soft/70 hover:bg-surface-soft">
+                    <td className={`rounded-l-lg border-l-4 px-3 py-3 ${STATUS_ACCENT_CLASS[getExpiryStatus(batch.expiry_date)]}`}>
                       <p className="font-semibold text-text">{batch.product?.name ?? "Produk tidak ditemukan"}</p>
                       <p className="text-xs text-muted">{batch.product?.barcode ?? "-"}</p>
                     </td>
-                    <td className="px-4 py-4 text-muted">{batch.product?.category?.name ?? "-"}</td>
-                    <td className="px-4 py-4 font-semibold text-text">{formatDate(batch.expiry_date)}</td>
-                    <td className="px-4 py-4 text-muted">{batch.quantity} pcs</td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3 text-muted">{batch.product?.category?.name ?? "-"}</td>
+                    <td className="px-3 py-3 font-semibold text-text">{formatDate(batch.expiry_date)}</td>
+                    <td className="px-3 py-3 text-muted">{batch.quantity} pcs</td>
+                    <td className="px-3 py-3">
                       <StatusBadge status={getExpiryStatus(batch.expiry_date)} daysLeft={getDaysLeft(batch.expiry_date)} />
                     </td>
-                    <td className="px-4 py-4 text-muted">{batch.batch_number ?? "-"}</td>
-                    <td className="px-4 py-4 text-muted">{formatUpdatedAt(batch.updated_at)}</td>
-                    <td className="px-4 py-4">
+                    <td className="px-3 py-3 text-muted">{batch.batch_number ?? "-"}</td>
+                    <td className="px-3 py-3 text-muted">{formatUpdatedAt(batch.updated_at)}</td>
+                    <td className="rounded-r-lg px-3 py-3">
                       <div className="flex gap-2">
                         <Link href={`/expiry/${batch.id}/edit`} className="btn-secondary min-h-9 px-3 py-1">
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                           Edit
                         </Link>
                         {isAdmin ? (
@@ -275,7 +295,14 @@ export function ExpiryList() {
                             disabled={isDeletingId === batch.id}
                             onClick={() => void handleDelete(batch)}
                           >
-                            {isDeletingId === batch.id ? <Spinner label="Hapus" /> : "Hapus"}
+                            {isDeletingId === batch.id ? (
+                              <Spinner label="Hapus" />
+                            ) : (
+                              <>
+                                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                                Hapus
+                              </>
+                            )}
                           </button>
                         ) : null}
                       </div>
@@ -287,50 +314,70 @@ export function ExpiryList() {
           </section>
 
           <section className="space-y-3 md:hidden">
-            {filteredBatches.map((batch) => (
-              <article key={batch.id} className="card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
+            {filteredBatches.map((batch) => {
+              const expanded = expandedBatchId === batch.id;
+
+              return (
+              <article key={batch.id} className={`panel overflow-hidden border-l-4 ${STATUS_ACCENT_CLASS[getExpiryStatus(batch.expiry_date)]}`}>
+                <button
+                  className="flex w-full items-start justify-between gap-3 p-4 text-left"
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setExpandedBatchId(expanded ? "" : batch.id)}
+                >
+                  <div className="min-w-0">
                     <h3 className="font-semibold text-text">{batch.product?.name ?? "Produk tidak ditemukan"}</h3>
-                    <p className="mt-1 text-xs text-muted">{batch.product?.barcode ?? "-"}</p>
+                    <p className="mt-1 text-xs text-muted">
+                      {formatDate(batch.expiry_date)} · {batch.quantity} pcs
+                    </p>
                   </div>
-                  <StatusBadge status={getExpiryStatus(batch.expiry_date)} daysLeft={getDaysLeft(batch.expiry_date)} />
-                </div>
-                <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <dt className="text-muted">Tanggal</dt>
-                    <dd className="font-semibold text-text">{formatDate(batch.expiry_date)}</dd>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <StatusBadge status={getExpiryStatus(batch.expiry_date)} daysLeft={getDaysLeft(batch.expiry_date)} />
+                    <ChevronDown className={`h-4 w-4 text-muted transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
                   </div>
-                  <div>
-                    <dt className="text-muted">Stok</dt>
-                    <dd className="font-semibold text-text">{batch.quantity} pcs</dd>
+                </button>
+
+                {expanded ? (
+                  <div className="border-t border-border px-4 pb-4 pt-3">
+                    <dl className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <dt className="text-muted">Barcode</dt>
+                        <dd className="font-semibold text-text">{batch.product?.barcode ?? "-"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted">Kategori</dt>
+                        <dd className="font-semibold text-text">{batch.product?.category?.name ?? "-"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted">Batch</dt>
+                        <dd className="font-semibold text-text">{batch.batch_number ?? "-"}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted">Update</dt>
+                        <dd className="font-semibold text-text">{formatUpdatedAt(batch.updated_at)}</dd>
+                      </div>
+                    </dl>
+                    <div className="mt-4 flex gap-2">
+                      <Link href={`/expiry/${batch.id}/edit`} className="btn-secondary flex-1 justify-center">
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        Edit
+                      </Link>
+                      {isAdmin ? (
+                        <button
+                          className="btn-secondary flex-1 justify-center text-danger"
+                          type="button"
+                          disabled={isDeletingId === batch.id}
+                          onClick={() => void handleDelete(batch)}
+                        >
+                          {isDeletingId === batch.id ? <Spinner label="Hapus" /> : "Hapus"}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
-                  <div>
-                    <dt className="text-muted">Kategori</dt>
-                    <dd className="font-semibold text-text">{batch.product?.category?.name ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted">Batch</dt>
-                    <dd className="font-semibold text-text">{batch.batch_number ?? "-"}</dd>
-                  </div>
-                </dl>
-                <div className="mt-4 flex gap-2">
-                  <Link href={`/expiry/${batch.id}/edit`} className="btn-secondary flex-1 justify-center">
-                    Edit
-                  </Link>
-                  {isAdmin ? (
-                    <button
-                      className="btn-secondary flex-1 justify-center text-danger"
-                      type="button"
-                      disabled={isDeletingId === batch.id}
-                      onClick={() => void handleDelete(batch)}
-                    >
-                      {isDeletingId === batch.id ? <Spinner label="Hapus" /> : "Hapus"}
-                    </button>
-                  ) : null}
-                </div>
+                ) : null}
               </article>
-            ))}
+              );
+            })}
           </section>
         </>
       )}
