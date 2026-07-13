@@ -7,6 +7,74 @@ import { getSupabaseClient } from "@/lib/supabase";
 
 type AuthMode = "signin" | "signup";
 
+type AuthErrorLike = {
+  code?: string;
+  message?: string;
+  name?: string;
+  status?: number;
+};
+
+const MIN_PASSWORD_LENGTH = 6;
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function normalizeAuthError(error: AuthErrorLike) {
+  return `${error.code ?? ""} ${error.message ?? ""} ${error.name ?? ""}`.toLowerCase();
+}
+
+function getSignupErrorMessage(error: AuthErrorLike) {
+  const normalizedError = normalizeAuthError(error);
+
+  if (
+    normalizedError.includes("already") ||
+    normalizedError.includes("registered") ||
+    normalizedError.includes("exists") ||
+    normalizedError.includes("user_already_exists") ||
+    normalizedError.includes("email_exists")
+  ) {
+    return "Email ini sudah terdaftar. Gunakan tab Masuk, atau pakai Lupa password jika kamu tidak ingat passwordnya.";
+  }
+
+  if (
+    normalizedError.includes("weak") ||
+    normalizedError.includes("password") ||
+    normalizedError.includes("too short") ||
+    normalizedError.includes("length")
+  ) {
+    return `Password belum memenuhi syarat. Gunakan minimal ${MIN_PASSWORD_LENGTH} karakter.`;
+  }
+
+  if (
+    normalizedError.includes("redirect") ||
+    normalizedError.includes("url") ||
+    normalizedError.includes("not_authorized")
+  ) {
+    return "Konfigurasi redirect Supabase belum cocok dengan URL aplikasi. Cek Site URL dan Redirect URLs di Supabase Auth.";
+  }
+
+  if (
+    error.status === 429 ||
+    normalizedError.includes("rate") ||
+    normalizedError.includes("too many") ||
+    normalizedError.includes("over_email_send_rate_limit")
+  ) {
+    return "Terlalu banyak percobaan daftar. Tunggu beberapa menit, lalu coba lagi.";
+  }
+
+  if (
+    normalizedError.includes("signup") ||
+    normalizedError.includes("signups") ||
+    normalizedError.includes("disabled") ||
+    normalizedError.includes("not allowed")
+  ) {
+    return "Pendaftaran akun sedang tidak aktif di Supabase Auth. Cek pengaturan Email signup di Supabase.";
+  }
+
+  return "Pendaftaran belum berhasil. Periksa email dan password lalu coba lagi.";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("signin");
@@ -33,8 +101,20 @@ export default function LoginPage() {
     setError("");
     setInfo("");
 
-    if (!email.trim() || !password.trim()) {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail || !password.trim()) {
       setError("Email dan password wajib diisi.");
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError("Format email belum valid.");
+      return;
+    }
+
+    if (mode === "signup" && password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password minimal ${MIN_PASSWORD_LENGTH} karakter.`);
       return;
     }
 
@@ -46,7 +126,6 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const supabase = getSupabaseClient();
-      const normalizedEmail = email.trim();
 
       if (mode === "signup") {
         const { error: signupError } = await supabase.auth.signUp({
@@ -58,7 +137,7 @@ export default function LoginPage() {
         });
 
         if (signupError) {
-          setError("Pendaftaran belum berhasil. Periksa email dan password lalu coba lagi.");
+          setError(getSignupErrorMessage(signupError));
           return;
         }
 
@@ -187,7 +266,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+          <form className="mt-8 space-y-5" noValidate onSubmit={handleSubmit}>
             <div>
               <label className="label" htmlFor="email">
                 Email
