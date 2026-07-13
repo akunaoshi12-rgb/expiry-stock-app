@@ -1,9 +1,10 @@
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Path
 from pydantic import ValidationError
 
-from app.core.auth import AuthenticatedUser, get_current_user, require_admin
+from app.core.auth import AuthenticatedUser, get_current_user
 from app.core.errors import error_response
 from app.schemas.common import ErrorResponse
 from app.schemas.product_batches import (
@@ -177,6 +178,7 @@ def update_product_batch(
     "/{batch_id}",
     response_model=ProductBatchDeleteResponse,
     responses={
+        400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
@@ -186,11 +188,18 @@ def delete_product_batch(
     batch_id: str = Path(),
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> ProductBatchDeleteResponse:
-    require_admin(current_user)
+    try:
+        normalized_batch_id = str(UUID(batch_id))
+    except ValueError:
+        return error_response(
+            code="VALIDATION_ERROR",
+            message="ID batch tidak valid.",
+            status_code=400,
+        )
 
     service = ProductBatchService()
     try:
-        deleted = service.delete_batch(batch_id, current_user.id)
+        deleted = service.delete_batch(normalized_batch_id, current_user.id)
     except ProductBatchNotFoundError:
         return error_response(
             code="BATCH_NOT_FOUND",

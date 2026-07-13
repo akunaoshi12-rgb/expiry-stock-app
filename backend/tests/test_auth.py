@@ -23,22 +23,18 @@ class FakeProfiles:
         return self.profile
 
 
-def test_missing_profile_defaults_to_staff() -> None:
+def test_missing_profile_is_forbidden() -> None:
     service = AuthService(verifier=FakeVerifier(), profiles=FakeProfiles(profile=None))  # type: ignore[arg-type]
 
-    user = service.authenticate("Bearer valid-token")
-
-    assert user.id == "user-1"
-    assert user.email == "staff@example.com"
-    assert user.role == "staff"
+    with pytest.raises(AuthorizationError):
+        service.authenticate("Bearer valid-token")
 
 
-def test_profile_lookup_error_defaults_to_staff() -> None:
+def test_profile_lookup_error_is_forbidden() -> None:
     service = AuthService(verifier=FakeVerifier(), profiles=FakeProfiles(profile=None, fail=True))  # type: ignore[arg-type]
 
-    user = service.authenticate("Bearer valid-token")
-
-    assert user.role == "staff"
+    with pytest.raises(AuthorizationError):
+        service.authenticate("Bearer valid-token")
 
 
 def test_inactive_profile_is_forbidden() -> None:

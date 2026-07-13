@@ -152,7 +152,7 @@ class ProductBatchRepository:
             raise ProductBatchRepositoryError("Product batch update database response was invalid.")
         return data[0]
 
-    def soft_delete(self, batch_id: str, user_id: str) -> dict[str, Any]:
+    def soft_delete(self, batch_id: str, user_id: str) -> dict[str, Any] | None:
         body = {
             "is_active": False,
             "deleted_by": user_id,
@@ -187,7 +187,11 @@ class ProductBatchRepository:
             raise ProductBatchRepositoryError("Product batch delete database request failed.") from exc
 
         data = response.json()
-        if not isinstance(data, list) or not data or not isinstance(data[0], dict):
+        if not isinstance(data, list):
+            raise ProductBatchRepositoryError("Product batch delete database response was invalid.")
+        if not data:
+            return None
+        if not isinstance(data[0], dict):
             raise ProductBatchRepositoryError("Product batch delete database response was invalid.")
         return data[0]
 

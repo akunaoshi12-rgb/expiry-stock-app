@@ -96,7 +96,7 @@ Endpoint:
 - `GET /api/product-batches/{batch_id}`
 - `POST /api/product-batches`
 - `PATCH /api/product-batches/{batch_id}`
-- `DELETE /api/product-batches/{batch_id}` admin only
+- `DELETE /api/product-batches/{batch_id}` authenticated user
 
 Request:
 

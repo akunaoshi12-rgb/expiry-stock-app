@@ -79,14 +79,10 @@ class AuthService:
         try:
             profile = self.profiles.get_by_id(user_id)
         except ProfileRepositoryError:
-            profile = None
+            raise AuthorizationError("User profile could not be verified.")
 
         if profile is None:
-            return AuthenticatedUser(
-                id=user_id,
-                email=self._read_email(user_data),
-                role="staff",
-            )
+            raise AuthorizationError("User profile is missing.")
 
         if not bool(profile.get("is_active")):
             raise AuthorizationError("User profile is inactive.")

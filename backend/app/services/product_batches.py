@@ -116,6 +116,9 @@ class ProductBatchService:
         except ProductBatchRepositoryError as exc:
             raise ProductBatchDatabaseError("Batch produk gagal dihapus.") from exc
 
+        if deleted is None:
+            raise ProductBatchNotFoundError("Batch tidak ditemukan.")
+
         return self._map_list_item(deleted)
 
     def dashboard_summary(self, today: date | None = None) -> dict[str, int]:

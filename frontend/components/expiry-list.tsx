@@ -5,7 +5,6 @@ import { ChevronDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { deleteProductBatch, getProductBatches } from "@/lib/api";
 import { formatDate, formatUpdatedAt, getDaysLeft, getExpiryStatus, STATUS_ACCENT_CLASS, STATUS_OPTIONS } from "@/lib/status";
-import { getSupabaseClient, getUserRole } from "@/lib/supabase";
 import type { ExpiryStatus, ProductBatchWithProduct } from "@/types";
 import { EmptyState, ErrorState, LoadingSkeleton, Spinner, Toast } from "@/components/state-panels";
 import { StatusBadge } from "@/components/status-badge";
@@ -27,9 +26,10 @@ export function ExpiryList() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
   const [toast, setToast] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [batches, setBatches] = useState<ProductBatchWithProduct[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<ProductBatchWithProduct | null>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -65,23 +65,6 @@ export function ExpiryList() {
   }, [loadBatches]);
 
   useEffect(() => {
-    let isActive = true;
-
-    async function loadRole() {
-      const { data } = await getSupabaseClient().auth.getUser();
-      if (isActive) {
-        setIsAdmin(getUserRole(data.user) === "admin");
-      }
-    }
-
-    void loadRole();
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
-
-  useEffect(() => {
     if (!toast) {
       return undefined;
     }
@@ -90,20 +73,34 @@ export function ExpiryList() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  async function handleDelete(batch: ProductBatchWithProduct) {
-    const confirmed = window.confirm(`Hapus batch ${batch.product?.name ?? batch.id}?`);
-    if (!confirmed) {
+  function openDeleteDialog(batch: ProductBatchWithProduct) {
+    setDeleteTarget(batch);
+    setDeleteErrorMessage("");
+  }
+
+  function closeDeleteDialog() {
+    if (isDeletingId) {
+      return;
+    }
+    setDeleteTarget(null);
+    setDeleteErrorMessage("");
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) {
       return;
     }
 
-    setIsDeletingId(batch.id);
-    setErrorMessage("");
+    setIsDeletingId(deleteTarget.id);
+    setDeleteErrorMessage("");
     try {
-      await deleteProductBatch(batch.id);
-      setBatches((current) => current.filter((item) => item.id !== batch.id));
+      await deleteProductBatch(deleteTarget.id);
+      setBatches((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setExpandedBatchId((current) => (current === deleteTarget.id ? "" : current));
       setToast("Batch berhasil dihapus.");
+      setDeleteTarget(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Batch belum dapat dihapus.");
+      setDeleteErrorMessage(error instanceof Error ? error.message : "Batch belum dapat dihapus.");
     } finally {
       setIsDeletingId("");
     }
@@ -253,8 +250,8 @@ export function ExpiryList() {
         />
       ) : (
         <>
-          <section className="panel hidden overflow-hidden md:block">
-            <table className="w-full border-separate border-spacing-y-1 p-2 text-left text-sm">
+          <section className="panel hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[1060px] border-separate border-spacing-y-1 p-2 text-left text-sm">
               <thead className="text-xs font-semibold text-muted">
                 <tr>
                   <th className="px-3 py-2">Produk</th>
@@ -264,7 +261,7 @@ export function ExpiryList() {
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Batch</th>
                   <th className="px-3 py-2">Update</th>
-                  <th className="px-3 py-2">Aksi</th>
+                  <th className="w-44 px-3 py-2">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -284,27 +281,25 @@ export function ExpiryList() {
                     <td className="px-3 py-3 text-muted">{formatUpdatedAt(batch.updated_at)}</td>
                     <td className="rounded-r-lg px-3 py-3">
                       <div className="flex gap-2">
-                        <Link href={`/expiry/${batch.id}/edit`} className="btn-secondary min-h-9 px-3 py-1">
+                        <Link href={`/expiry/${batch.id}/edit`} className="btn-secondary min-h-9 whitespace-nowrap px-3 py-1">
                           <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                           Edit
                         </Link>
-                        {isAdmin ? (
-                          <button
-                            className="btn-secondary min-h-9 px-3 py-1 text-danger"
-                            type="button"
-                            disabled={isDeletingId === batch.id}
-                            onClick={() => void handleDelete(batch)}
-                          >
-                            {isDeletingId === batch.id ? (
-                              <Spinner label="Hapus" />
-                            ) : (
-                              <>
-                                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                                Hapus
-                              </>
-                            )}
-                          </button>
-                        ) : null}
+                        <button
+                          className="btn-secondary min-h-9 whitespace-nowrap border-danger/30 bg-danger-soft px-3 py-1 text-danger hover:bg-danger-soft/80"
+                          type="button"
+                          disabled={isDeletingId === batch.id}
+                          onClick={() => openDeleteDialog(batch)}
+                        >
+                          {isDeletingId === batch.id ? (
+                            <Spinner label="Hapus" />
+                          ) : (
+                            <>
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              Hapus
+                            </>
+                          )}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -362,16 +357,21 @@ export function ExpiryList() {
                         <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                         Edit
                       </Link>
-                      {isAdmin ? (
-                        <button
-                          className="btn-secondary flex-1 justify-center text-danger"
-                          type="button"
-                          disabled={isDeletingId === batch.id}
-                          onClick={() => void handleDelete(batch)}
-                        >
-                          {isDeletingId === batch.id ? <Spinner label="Hapus" /> : "Hapus"}
-                        </button>
-                      ) : null}
+                      <button
+                        className="btn-secondary flex-1 justify-center border-danger/30 bg-danger-soft text-danger hover:bg-danger-soft/80"
+                        type="button"
+                        disabled={isDeletingId === batch.id}
+                        onClick={() => openDeleteDialog(batch)}
+                      >
+                        {isDeletingId === batch.id ? (
+                          <Spinner label="Hapus" />
+                        ) : (
+                          <>
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            Hapus
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 ) : null}
@@ -381,6 +381,60 @@ export function ExpiryList() {
           </section>
         </>
       )}
+      {deleteTarget ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/35 px-4 py-5 backdrop-blur-[2px] md:items-center">
+          <div
+            className="w-full max-w-md rounded-lg border border-border bg-white shadow-soft"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-batch-title"
+          >
+            <div className="border-b border-border px-5 py-4">
+              <p className="text-xs font-semibold uppercase text-danger">Konfirmasi hapus</p>
+              <h3 id="delete-batch-title" className="mt-1 text-lg font-semibold text-text">
+                Hapus batch stok?
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Batch akan disembunyikan dari daftar aktif dan tetap tercatat sebagai data audit.
+              </p>
+            </div>
+            <dl className="grid gap-3 px-5 py-4 text-sm">
+              <div className="grid grid-cols-[7rem_1fr] gap-3">
+                <dt className="text-muted">Produk</dt>
+                <dd className="font-semibold text-text">{deleteTarget.product?.name ?? "Produk tidak ditemukan"}</dd>
+              </div>
+              <div className="grid grid-cols-[7rem_1fr] gap-3">
+                <dt className="text-muted">Batch code</dt>
+                <dd className="font-semibold text-text">{deleteTarget.batch_number ?? "-"}</dd>
+              </div>
+              <div className="grid grid-cols-[7rem_1fr] gap-3">
+                <dt className="text-muted">Expired</dt>
+                <dd className="font-semibold text-text">{formatDate(deleteTarget.expiry_date)}</dd>
+              </div>
+            </dl>
+            {deleteErrorMessage ? (
+              <div className="mx-5 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm font-semibold text-danger">
+                {deleteErrorMessage}
+              </div>
+            ) : null}
+            <div className="flex flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
+              <button className="btn-secondary" type="button" onClick={closeDeleteDialog} disabled={Boolean(isDeletingId)}>
+                Batal
+              </button>
+              <button className="btn-primary bg-danger hover:bg-danger/90" type="button" onClick={() => void confirmDelete()} disabled={Boolean(isDeletingId)}>
+                {isDeletingId ? (
+                  <Spinner label="Menghapus" />
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    Hapus batch
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {toast ? <Toast message={toast} /> : null}
     </div>
   );

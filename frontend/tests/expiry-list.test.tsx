@@ -1,9 +1,8 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ExpiryList } from "@/components/expiry-list";
 import { deleteProductBatch, getProductBatches } from "@/lib/api";
-import { getSupabaseClient } from "@/lib/supabase";
 import type { ProductBatchWithProduct } from "@/types";
 
 vi.mock("@/lib/api", () => ({
@@ -11,14 +10,8 @@ vi.mock("@/lib/api", () => ({
   getProductBatches: vi.fn()
 }));
 
-vi.mock("@/lib/supabase", () => ({
-  getSupabaseClient: vi.fn(),
-  getUserRole: () => "admin"
-}));
-
 const getProductBatchesMock = vi.mocked(getProductBatches);
 const deleteProductBatchMock = vi.mocked(deleteProductBatch);
-const getSupabaseClientMock = vi.mocked(getSupabaseClient);
 
 const batch: ProductBatchWithProduct = {
   id: "batch-1",
@@ -48,12 +41,6 @@ const batch: ProductBatchWithProduct = {
 beforeEach(() => {
   getProductBatchesMock.mockResolvedValue([batch]);
   deleteProductBatchMock.mockResolvedValue(batch);
-  getSupabaseClientMock.mockReturnValue({
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: { app_metadata: { role: "admin" } } } })
-    }
-  } as never);
-  vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -68,16 +55,40 @@ describe("ExpiryList", () => {
 
     expect((await screen.findAllByText("ALMOND MILK"))[0]).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /edit/i })[0]).toHaveAttribute("href", "/expiry/batch-1/edit");
+    expect(screen.getAllByRole("button", { name: /hapus/i })[0]).toBeInTheDocument();
   });
 
-  it("admin dapat menghapus batch dengan konfirmasi", async () => {
+  it("user dapat menghapus batch dengan konfirmasi", async () => {
     const user = userEvent.setup();
     render(<ExpiryList />);
 
     await screen.findAllByText("ALMOND MILK");
     await user.click(screen.getAllByRole("button", { name: /hapus/i })[0]);
 
+    const dialog = screen.getByRole("dialog", { name: /hapus batch stok/i });
+    expect(within(dialog).getByText("ALMOND MILK")).toBeInTheDocument();
+    expect(within(dialog).getByText("BATCH-001")).toBeInTheDocument();
+    expect(within(dialog).getByText("31 Okt 2026")).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: /hapus batch/i }));
+
     await waitFor(() => expect(deleteProductBatchMock).toHaveBeenCalledWith("batch-1"));
     expect(await screen.findByText("Batch berhasil dihapus.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("menampilkan error di modal jika hapus gagal", async () => {
+    deleteProductBatchMock.mockRejectedValue(new Error("Batch belum dapat dihapus."));
+    const user = userEvent.setup();
+    render(<ExpiryList />);
+
+    await screen.findAllByText("ALMOND MILK");
+    await user.click(screen.getAllByRole("button", { name: /hapus/i })[0]);
+
+    const dialog = screen.getByRole("dialog", { name: /hapus batch stok/i });
+    await user.click(within(dialog).getByRole("button", { name: /hapus batch/i }));
+
+    expect(await within(dialog).findByText("Batch belum dapat dihapus.")).toBeInTheDocument();
+    expect(screen.getAllByText("ALMOND MILK")[0]).toBeInTheDocument();
   });
 });

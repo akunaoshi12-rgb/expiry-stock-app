@@ -5,13 +5,19 @@ import { useEffect, useState } from "react";
 import { Spinner, Toast } from "@/components/state-panels";
 import { getSupabaseClient } from "@/lib/supabase";
 
+type AuthMode = "signin" | "signup";
+
 export default function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [toast, setToast] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     if (!toast) {
@@ -25,16 +31,46 @@ export default function LoginPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setInfo("");
 
     if (!email.trim() || !password.trim()) {
       setError("Email dan password wajib diisi.");
       return;
     }
 
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Konfirmasi password belum sama.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { error: loginError } = await getSupabaseClient().auth.signInWithPassword({
-        email: email.trim(),
+      const supabase = getSupabaseClient();
+      const normalizedEmail = email.trim();
+
+      if (mode === "signup") {
+        const { error: signupError } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/login`
+          }
+        });
+
+        if (signupError) {
+          setError("Pendaftaran belum berhasil. Periksa email dan password lalu coba lagi.");
+          return;
+        }
+
+        await supabase.auth.signOut();
+        setPassword("");
+        setConfirmPassword("");
+        setInfo("Pendaftaran berhasil. Cek email untuk verifikasi, lalu masuk kembali setelah akun terkonfirmasi.");
+        return;
+      }
+
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
         password
       });
 
@@ -53,6 +89,44 @@ export default function LoginPage() {
     }
   }
 
+  async function handleResetPassword() {
+    setError("");
+    setInfo("");
+
+    if (!email.trim()) {
+      setError("Isi email terlebih dahulu untuk menerima link reset password.");
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const { error: resetError } = await getSupabaseClient().auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/login`
+      });
+
+      if (resetError) {
+        setError("Link reset password belum dapat dikirim. Periksa email lalu coba lagi.");
+        return;
+      }
+
+      setInfo("Jika email terdaftar, link reset password akan dikirim oleh Supabase.");
+    } catch {
+      setError("Konfigurasi reset password belum tersedia. Periksa environment Supabase.");
+    } finally {
+      setIsResetting(false);
+    }
+  }
+
+  function changeMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setError("");
+    setInfo("");
+    setPassword("");
+    setConfirmPassword("");
+  }
+
+  const isSignup = mode === "signup";
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
       <section className="grid w-full max-w-5xl overflow-hidden rounded-lg border border-border bg-white shadow-soft md:grid-cols-[1fr_0.9fr]">
@@ -61,7 +135,7 @@ export default function LoginPage() {
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">Expiry Stock App</p>
             <h1 className="mt-4 text-4xl font-bold leading-tight text-text">Pantau stok sebelum terlambat.</h1>
             <p className="mt-4 text-sm leading-6 text-muted">
-              Masuk dengan akun Supabase yang sudah dibuat untuk aplikasi internal ini.
+              Masuk atau daftar akun baru untuk project Supabase yang digunakan aplikasi internal ini.
             </p>
           </div>
           <div className="mt-8 grid gap-3 text-sm text-muted">
@@ -80,12 +154,37 @@ export default function LoginPage() {
         <div className="p-6 md:p-8">
           <div className="mb-8 md:hidden">
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">Expiry Stock App</p>
-            <h1 className="mt-2 text-3xl font-bold text-text">Masuk</h1>
+            <h1 className="mt-2 text-3xl font-bold text-text">{isSignup ? "Daftar akun" : "Masuk"}</h1>
           </div>
 
           <div className="hidden md:block">
-            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Masuk</p>
-            <h2 className="mt-2 text-3xl font-bold text-text">Selamat datang</h2>
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary">{isSignup ? "Daftar akun" : "Masuk"}</p>
+            <h2 className="mt-2 text-3xl font-bold text-text">{isSignup ? "Buat akun baru" : "Selamat datang"}</h2>
+          </div>
+
+          <div className="mt-8 grid grid-cols-2 rounded-lg border border-border bg-surface-soft p-1" role="tablist" aria-label="Mode autentikasi">
+            <button
+              className={`min-h-10 rounded-md text-sm font-semibold transition-colors ${
+                !isSignup ? "bg-white text-primary shadow-sm" : "text-muted hover:text-text"
+              }`}
+              type="button"
+              role="tab"
+              aria-selected={!isSignup}
+              onClick={() => changeMode("signin")}
+            >
+              Masuk
+            </button>
+            <button
+              className={`min-h-10 rounded-md text-sm font-semibold transition-colors ${
+                isSignup ? "bg-white text-primary shadow-sm" : "text-muted hover:text-text"
+              }`}
+              type="button"
+              role="tab"
+              aria-selected={isSignup}
+              onClick={() => changeMode("signup")}
+            >
+              Daftar
+            </button>
           </div>
 
           <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
@@ -121,9 +220,29 @@ export default function LoginPage() {
                   setError("");
                 }}
                 placeholder="Masukkan password"
-                autoComplete="current-password"
+                autoComplete={isSignup ? "new-password" : "current-password"}
               />
             </div>
+
+            {isSignup ? (
+              <div>
+                <label className="label" htmlFor="confirm-password">
+                  Konfirmasi password
+                </label>
+                <input
+                  id="confirm-password"
+                  className="field mt-2"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => {
+                    setConfirmPassword(event.target.value);
+                    setError("");
+                  }}
+                  placeholder="Ulangi password"
+                  autoComplete="new-password"
+                />
+              </div>
+            ) : null}
 
             {error ? (
               <div className="rounded-lg border border-danger/30 bg-red-50 p-3 text-sm font-semibold text-danger">
@@ -131,9 +250,30 @@ export default function LoginPage() {
               </div>
             ) : null}
 
+            {info ? (
+              <div className="rounded-lg border border-primary/20 bg-surface-soft p-3 text-sm font-semibold text-primary">
+                {info}
+              </div>
+            ) : null}
+
             <button className="btn-primary w-full" type="submit" disabled={isLoading}>
-              {isLoading ? <Spinner label="Memeriksa" /> : "Masuk ke dashboard"}
+              {isLoading ? <Spinner label={isSignup ? "Mendaftarkan" : "Memeriksa"} /> : isSignup ? "Daftar akun" : "Masuk ke dashboard"}
             </button>
+
+            {!isSignup ? (
+              <button
+                className="w-full text-center text-sm font-semibold text-primary transition-colors hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                disabled={isLoading || isResetting}
+                onClick={() => void handleResetPassword()}
+              >
+                {isResetting ? <Spinner label="Mengirim link reset" /> : "Lupa password?"}
+              </button>
+            ) : (
+              <p className="text-sm leading-6 text-muted">
+                Setelah daftar, verifikasi email dari Supabase. Profil staff akan aktif otomatis setelah akun terkonfirmasi.
+              </p>
+            )}
           </form>
         </div>
       </section>

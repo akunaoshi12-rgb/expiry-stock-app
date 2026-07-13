@@ -7,6 +7,7 @@ from app.repositories.product_batches import ProductBatchRepositoryError
 from app.schemas.product_batches import ProductBatchCreateRequest
 from app.services.product_batches import (
     ProductBatchDatabaseError,
+    ProductBatchNotFoundError,
     ProductBatchService,
     ProductInactiveError,
     ProductNotFoundError,
@@ -90,11 +91,12 @@ class FakeProductBatchRepository:
             row[key] = value
         return row
 
-    def soft_delete(self, batch_id: str, user_id: str) -> dict[str, object]:
+    def soft_delete(self, batch_id: str, user_id: str) -> dict[str, object] | None:
         if not self.rows:
-            raise ProductBatchRepositoryError("missing")
+            return None
         row = dict(self.rows[0])
         row["is_active"] = False
+        row["deleted_by"] = user_id
         return row
 
 
@@ -170,6 +172,24 @@ def test_list_batches_database_error() -> None:
 
     with pytest.raises(ProductBatchDatabaseError):
         service.list_batches()
+
+
+def test_delete_batch_uses_soft_delete() -> None:
+    product_id = str(uuid4())
+    repository = FakeProductBatchRepository(rows=[batch_row_with_product(product_id)])
+    service = ProductBatchService(repository=repository)  # type: ignore[arg-type]
+
+    result = service.delete_batch("batch-1", user_id="admin-user")
+
+    assert result.id == repository.rows[0]["id"]
+    assert result.is_active is False
+
+
+def test_delete_batch_not_found() -> None:
+    service = ProductBatchService(repository=FakeProductBatchRepository(rows=[]))  # type: ignore[arg-type]
+
+    with pytest.raises(ProductBatchNotFoundError):
+        service.delete_batch("missing-batch", user_id="admin-user")
 
 
 def test_dashboard_summary_is_computed_from_batches() -> None:
@@ -333,28 +353,64 @@ def test_staff_can_update_batch(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.status_code == 200
 
 
-def test_staff_cannot_delete_batch() -> None:
-    response = client.delete("/api/product-batches/batch-1", headers=STAFF_HEADERS)
-
-    assert response.status_code == 403
-    assert response.json()["error"]["code"] == "FORBIDDEN"
-
-
-def test_admin_can_delete_batch(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_staff_can_delete_batch(monkeypatch: pytest.MonkeyPatch) -> None:
     product_id = str(uuid4())
+    expected_batch_id = str(uuid4())
 
     class DeletableService:
         def delete_batch(self, batch_id: str, user_id: str) -> object:
-            assert user_id == "admin-user"
+            assert user_id == "staff-user"
+            assert batch_id == expected_batch_id
             return ProductBatchService(  # type: ignore[arg-type]
                 repository=FakeProductBatchRepository(rows=[batch_row_with_product(product_id)])
             ).get_batch(batch_id)
 
     monkeypatch.setattr("app.api.product_batches.ProductBatchService", DeletableService)
 
-    response = client.delete("/api/product-batches/batch-1", headers=ADMIN_HEADERS)
+    response = client.delete(f"/api/product-batches/{expected_batch_id}", headers=STAFF_HEADERS)
 
     assert response.status_code == 200
+
+
+def test_admin_can_delete_batch(monkeypatch: pytest.MonkeyPatch) -> None:
+    product_id = str(uuid4())
+    expected_batch_id = str(uuid4())
+
+    class DeletableService:
+        def delete_batch(self, batch_id: str, user_id: str) -> object:
+            assert user_id == "admin-user"
+            assert batch_id == expected_batch_id
+            return ProductBatchService(  # type: ignore[arg-type]
+                repository=FakeProductBatchRepository(rows=[batch_row_with_product(product_id)])
+            ).get_batch(batch_id)
+
+    monkeypatch.setattr("app.api.product_batches.ProductBatchService", DeletableService)
+
+    response = client.delete(f"/api/product-batches/{expected_batch_id}", headers=ADMIN_HEADERS)
+
+    assert response.status_code == 200
+
+
+def test_admin_delete_rejects_invalid_batch_id() -> None:
+    response = client.delete("/api/product-batches/not-a-uuid", headers=ADMIN_HEADERS)
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_delete_batch_not_found_is_404(monkeypatch: pytest.MonkeyPatch) -> None:
+    batch_id = str(uuid4())
+
+    class MissingService:
+        def delete_batch(self, batch_id: str, user_id: str) -> object:
+            raise ProductBatchNotFoundError("missing")
+
+    monkeypatch.setattr("app.api.product_batches.ProductBatchService", MissingService)
+
+    response = client.delete(f"/api/product-batches/{batch_id}", headers=ADMIN_HEADERS)
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "BATCH_NOT_FOUND"
 
 
 def test_date_objects_are_accepted() -> None:

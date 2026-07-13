@@ -6,6 +6,9 @@ import { getSupabaseClient } from "@/lib/supabase";
 
 const pushMock = vi.fn();
 const signInWithPasswordMock = vi.fn();
+const signUpMock = vi.fn();
+const signOutMock = vi.fn();
+const resetPasswordForEmailMock = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -22,10 +25,16 @@ const getSupabaseClientMock = vi.mocked(getSupabaseClient);
 beforeEach(() => {
   getSupabaseClientMock.mockReturnValue({
     auth: {
-      signInWithPassword: signInWithPasswordMock
+      resetPasswordForEmail: resetPasswordForEmailMock,
+      signInWithPassword: signInWithPasswordMock,
+      signOut: signOutMock,
+      signUp: signUpMock
     }
   } as never);
   signInWithPasswordMock.mockResolvedValue({ error: null });
+  signOutMock.mockResolvedValue({ error: null });
+  signUpMock.mockResolvedValue({ error: null });
+  resetPasswordForEmailMock.mockResolvedValue({ error: null });
 });
 
 afterEach(() => {
@@ -63,5 +72,58 @@ describe("LoginPage", () => {
 
     expect(await screen.findByText("Login belum berhasil. Periksa email atau password lalu coba lagi.")).toBeInTheDocument();
     expect(screen.queryByText("internal")).not.toBeInTheDocument();
+  });
+
+  it("daftar akun memakai Supabase Auth dan menampilkan instruksi verifikasi email", async () => {
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.click(screen.getByRole("tab", { name: /daftar/i }));
+    await user.type(screen.getByLabelText(/email/i), "baru@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "password-baru");
+    await user.type(screen.getByLabelText(/konfirmasi password/i), "password-baru");
+    await user.click(screen.getByRole("button", { name: /daftar akun/i }));
+
+    await waitFor(() =>
+      expect(signUpMock).toHaveBeenCalledWith({
+        email: "baru@example.com",
+        password: "password-baru",
+        options: {
+          emailRedirectTo: expect.stringContaining("/login")
+        }
+      })
+    );
+    expect(signOutMock).toHaveBeenCalled();
+    expect(await screen.findByText("Pendaftaran berhasil. Cek email untuk verifikasi, lalu masuk kembali setelah akun terkonfirmasi.")).toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("menolak daftar akun saat konfirmasi password berbeda", async () => {
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.click(screen.getByRole("tab", { name: /daftar/i }));
+    await user.type(screen.getByLabelText(/email/i), "baru@example.com");
+    await user.type(screen.getByLabelText(/^password$/i), "password-baru");
+    await user.type(screen.getByLabelText(/konfirmasi password/i), "password-lain");
+    await user.click(screen.getByRole("button", { name: /daftar akun/i }));
+
+    expect(await screen.findByText("Konfirmasi password belum sama.")).toBeInTheDocument();
+    expect(signUpMock).not.toHaveBeenCalled();
+  });
+
+  it("mengirim link reset password untuk mode masuk", async () => {
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText(/email/i), "staff@example.com");
+    await user.click(screen.getByRole("button", { name: /lupa password/i }));
+
+    await waitFor(() =>
+      expect(resetPasswordForEmailMock).toHaveBeenCalledWith("staff@example.com", {
+        redirectTo: expect.stringContaining("/login")
+      })
+    );
+    expect(await screen.findByText("Jika email terdaftar, link reset password akan dikirim oleh Supabase.")).toBeInTheDocument();
   });
 });
