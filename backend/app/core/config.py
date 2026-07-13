@@ -14,6 +14,7 @@ class Settings:
     supabase_service_role_key: str | None
     supabase_publishable_key: str | None
     frontend_url: str
+    frontend_urls: str | None = None
     supabase_timeout_seconds: float = 5.0
 
 
@@ -23,4 +24,5 @@ def get_settings() -> Settings:
         supabase_service_role_key=os.getenv("SUPABASE_SERVICE_ROLE_KEY"),
         supabase_publishable_key=os.getenv("SUPABASE_PUBLISHABLE_KEY"),
         frontend_url=os.getenv("FRONTEND_URL", "http://127.0.0.1:3000"),
+        frontend_urls=os.getenv("FRONTEND_URLS"),
     )

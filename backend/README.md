@@ -11,10 +11,12 @@ SUPABASE_URL=
 SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 FRONTEND_URL=http://127.0.0.1:3000
+FRONTEND_URLS=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` hanya boleh ada di backend server-side. Jangan gunakan prefix `NEXT_PUBLIC_` untuk secret backend.
 `SUPABASE_PUBLISHABLE_KEY` dipakai backend untuk verifikasi token Supabase Auth.
+`FRONTEND_URLS` opsional dan dapat diisi daftar origin frontend tambahan yang dipisahkan koma, misalnya untuk production, preview, atau custom domain.
 
 ## Cara Menjalankan
 

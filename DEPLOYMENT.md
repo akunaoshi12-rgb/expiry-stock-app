@@ -84,12 +84,19 @@ SUPABASE_URL=
 SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 FRONTEND_URL=
+FRONTEND_URLS=
 ENVIRONMENT=production
 ```
 
 ## 5. CORS
 
-Backend production hanya mengizinkan domain frontend Railway atau custom domain.
+Backend production hanya mengizinkan domain frontend Railway, Vercel project ini, atau custom domain yang dimasukkan melalui `FRONTEND_URL` dan `FRONTEND_URLS`.
+
+Gunakan `FRONTEND_URLS` jika ada lebih dari satu origin frontend production/preview:
+
+```env
+FRONTEND_URLS=https://frontend.example.com,https://preview.example.com
+```
 
 Jangan menggunakan:
 
@@ -107,6 +114,7 @@ pada production dengan credentials aktif.
 4. Deploy frontend.
 5. Ambil URL frontend.
 6. Isi `FRONTEND_URL` pada backend.
+   Jika frontend punya beberapa origin, isi origin tambahan di `FRONTEND_URLS`.
 7. Redeploy backend.
 8. Konfigurasi redirect URL Supabase Auth.
 9. Uji login dan API.
