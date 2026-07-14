@@ -23,7 +23,7 @@ Aplikasi membantu staf:
 | Database | Supabase PostgreSQL |
 | Authentication | Supabase Auth |
 | Repository | GitHub |
-| Hosting | Railway |
+| Hosting | Vercel |
 | Struktur | Monorepo |
 
 ## Struktur Repository
